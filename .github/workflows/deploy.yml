@@ -38,7 +38,7 @@ jobs:
       #     CHROME_PATH: /usr/bin/google-chrome
 
       - name: Build application
-        run: npm run build -- --configuration production
+        run: npm run build -- --configuration production --base-href "/binance_alpha_monitor/"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
