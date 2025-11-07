@@ -84,7 +84,7 @@
   <div class="login-modal-content">
     <button class="btn-close" (click)="closeLoginModal()">×</button>
     <h3>Ghi nhận đăng nhập cho tài khoản: {{ loginAccount?.name }}</h3>
-    <label>Thời gian đăng nhập:</label>
+  <label>Thời gian đăng nhập (GMT+7):</label>
     <input type="datetime-local" [(ngModel)]="loginTime" />
     <div class="modal-actions">
       <button class="btn-primary left" (click)="confirmLoginWithTime()">Xác nhận</button>

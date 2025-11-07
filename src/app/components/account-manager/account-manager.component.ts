@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './account-manager.component.scss'
 })
 export class AccountManagerComponent implements OnInit, OnDestroy {
+  private readonly LOGIN_TIMEZONE_OFFSET = 7; // GMT+7
   accounts: Account[] = [];
   selectedAccount: Account | null = null;
   sortColumn: string = 'name';
@@ -223,8 +224,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
 
   confirmLoginWithTime(): void {
     if (this.loginAccount && this.loginTime) {
-      // Chuyển loginTime từ string sang Date
-      const loginDate = new Date(this.loginTime);
+      const loginDate = this.parseLoginTimeToDate(this.loginTime) ?? new Date();
       this.loginAccount.lastLogin = loginDate;
       this.accounts = this.accounts.map(acc => acc.id === this.loginAccount!.id ? { ...acc, lastLogin: loginDate } : acc);
       this.closeLoginModal();
@@ -233,9 +233,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
 
   openLoginModal(account: Account): void {
     this.loginAccount = account;
-    // Mặc định là thời gian hiện tại, format yyyy-MM-ddTHH:mm
     const now = new Date();
-    this.loginTime = now.toISOString().slice(0,16);
+    this.loginTime = this.formatDateForLoginInput(now);
     this.showLoginModal = true;
   }
 
@@ -243,6 +242,27 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     this.showLoginModal = false;
     this.loginAccount = null;
     this.loginTime = '';
+  }
+
+  private formatDateForLoginInput(date: Date): string {
+    const tzMillis = this.LOGIN_TIMEZONE_OFFSET * 60 * 60 * 1000;
+    const tzDate = new Date(date.getTime() + tzMillis);
+    const year = tzDate.getUTCFullYear();
+    const month = String(tzDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(tzDate.getUTCDate()).padStart(2, '0');
+    const hours = String(tzDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(tzDate.getUTCMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  private parseLoginTimeToDate(value: string): Date | null {
+    if (!value) return null;
+    const [datePart, timePart] = value.split('T');
+    if (!datePart || !timePart) return null;
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute] = timePart.split(':').map(Number);
+    if ([year, month, day, hour, minute].some(num => Number.isNaN(num))) return null;
+    return new Date(Date.UTC(year, month - 1, day, hour - this.LOGIN_TIMEZONE_OFFSET, minute));
   }
 
   // Tính thời gian còn lại đến logout (5 ngày sau login)
