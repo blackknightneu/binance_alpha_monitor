@@ -33,7 +33,7 @@
           <th class="col-numeric" (click)="sortBy('balance')">Số dư <span class="sort-indicator" *ngIf="sortColumn==='balance'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
           <th class="col-numeric" (click)="sortBy('todayPoints')">Điểm hôm nay <span class="sort-indicator" *ngIf="sortColumn==='todayPoints'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
           <th class="col-numeric" (click)="sortBy('tomorrowPoints')">Điểm ngày mai <span class="sort-indicator" *ngIf="sortColumn==='tomorrowPoints'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-          <th class="col-numeric" (click)="sortBy('pnl')">Lãi/Lỗ <span class="sort-indicator" *ngIf="sortColumn==='pnl'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th class="col-numeric" (click)="sortBy('pnl')">PnL (hôm nay) <span class="sort-indicator" *ngIf="sortColumn==='pnl'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
           <th class="col-numeric" (click)="sortBy('tradeVolume')">Khối lượng hôm nay <span class="sort-indicator" *ngIf="sortColumn==='tradeVolume'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
           <th class="col-numeric" (click)="sortBy('logoutCountdown')">Đăng xuất <span class="sort-indicator" *ngIf="sortColumn==='logoutCountdown'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
           <th>Thao tác</th>

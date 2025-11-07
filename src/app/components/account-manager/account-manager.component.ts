@@ -113,11 +113,16 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   }
 
   getPnL(account: Account): number {
-    if (!account || !account.pointsHistory || account.pointsHistory.length === 0) return 0;
-    // Tính tổng (startBalance - endBalance) + tổng profit
-    const sumDiff = account.pointsHistory.reduce((s, r) => s + ((r.startBalance ?? 0) - (r.endBalance ?? 0)), 0);
-    const sumProfit = account.pointsHistory.reduce((s, r) => s + (r.profit ?? 0), 0);
-    return sumDiff + sumProfit;
+    if (!account || !account.pointsHistory) return 0;
+    // Trả về PnL của NGÀY HÔM NAY: (endBalance - startBalance) + profit
+    const todayUTC = new Date();
+    todayUTC.setUTCHours(0,0,0,0);
+    const todayRecord = this.getOrCreateRecord(account, todayUTC);
+    if (!todayRecord) return 0;
+    const start = todayRecord.startBalance ?? 0;
+    const end = todayRecord.endBalance ?? todayRecord.balance ?? 0;
+    const profit = todayRecord.profit ?? 0;
+    return (end - start) + profit;
   }
 
   selectAccount(accountId: string): void {
