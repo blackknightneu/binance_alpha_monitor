@@ -1,0 +1,371 @@
+.account-manager {
+  padding: 2rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+
+  @media (max-width: 900px) {
+    padding: 1.5rem 1rem;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: 100%;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.75rem;
+    padding: 1.1rem 1.4rem;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(6px);
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+
+    h2 {
+      margin: 0;
+      color: #0f172a;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.65rem;
+      align-items: center;
+    }
+  }
+
+  .local-warning {
+    margin: -0.5rem 0 1.5rem;
+    color: #475569;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+
+  .accounts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    flex: 1;
+    overflow: auto;
+  }
+}
+
+.accounts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+}
+
+.accounts-table th,
+.accounts-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.accounts-table th {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #111827;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.accounts-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.accounts-table tbody tr {
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.accounts-table tbody tr:hover {
+  background: #f9fafb;
+  transform: translateY(-1px);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.08);
+}
+
+.accounts-table tbody tr.selected {
+  background: #dbeafe;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.25);
+}
+
+.accounts-table tbody tr.no-volume {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.col-numeric {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.col-stt {
+  text-align: center;
+  color: #6b7280;
+  width: 48px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-ghost {
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.btn-with-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  position: relative;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  padding: 8px 14px;
+}
+
+.btn-primary.left {
+  background: #22c55e;
+  color: #fff;
+  padding: 9px 18px;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #1f2937;
+  padding: 7px 12px;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+  padding: 7px 12px;
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.8);
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 0;
+}
+
+.btn-export .btn-icon {
+  color: #2563eb;
+}
+
+.btn-login .btn-icon {
+  color: #f59e0b;
+}
+
+.btn-new .btn-icon {
+  color: #fff;
+  font-size: 1.15rem;
+}
+
+.btn-delete-all .btn-icon,
+.btn-delete-one .btn-icon {
+  color: #fff;
+}
+
+.btn-with-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+}
+
+.btn-with-icon:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+.btn-with-icon:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 3px;
+}
+
+.accounts-table tbody tr td button {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.import-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
+
+  input[type="file"] {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+  }
+}
+
+.import-btn .btn-icon {
+  color: #10b981;
+}
+
+.login-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 24, 39, 0.45);
+  z-index: 2000;
+}
+
+.login-modal-content {
+  position: relative;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-modal-content h3 {
+  margin: 0;
+  color: #111827;
+}
+
+.login-modal-content label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.login-modal-content input[type="datetime-local"] {
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  position: relative;
+}
+
+.btn-close {
+  position: absolute;
+  top: -1.5rem;
+  right: -1.5rem;
+  background: #fff;
+  border: none;
+  color: #ef4444;
+  font-size: 1.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+  width: 2.5rem;
+  height: 2.5rem;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.debug-status {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  font-size: 0.85rem;
+  color: #111827;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 760px) {
+  .accounts-table thead {
+    display: none;
+  }
+
+  .accounts-table,
+  .accounts-table tbody,
+  .accounts-table tr,
+  .accounts-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .accounts-table tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.75rem;
+  }
+
+  .col-numeric {
+    text-align: left;
+  }
+
+  .col-actions {
+    text-align: left;
+  }
+}

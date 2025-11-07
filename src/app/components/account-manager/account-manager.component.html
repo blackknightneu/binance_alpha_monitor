@@ -1,0 +1,99 @@
+<div class="account-manager">
+  <div class="header">
+    <h2>Quản lý tài khoản</h2>
+    <div class="actions">
+      <button routerLink="/create-account" class="btn-primary btn-with-icon btn-new" aria-label="Tạo tài khoản mới">
+        <span class="btn-icon">+</span>
+        <span class="sr-only">Tạo tài khoản mới</span>
+      </button>
+       <button (click)="deleteAllAccounts()" class="btn-danger btn-with-icon btn-delete-all" aria-label="Xóa tất cả tài khoản">
+        <span class="btn-icon">🗑</span>
+        <span class="sr-only">Xóa tất cả tài khoản</span>
+      </button>
+      <button (click)="exportData()" class="btn-ghost btn-with-icon btn-export" aria-label="Xuất dữ liệu">
+        <span class="btn-icon">⇩</span>
+        <span class="sr-only">Xuất dữ liệu</span>
+      </button>
+      <label class="btn-ghost import-btn btn-with-icon" aria-label="Nhập dữ liệu">
+        <span class="btn-icon">⇪</span>
+        <span class="sr-only">Nhập dữ liệu</span>
+        <input type="file" accept=".csv" (change)="importData($event)" hidden>
+      </label>
+    </div>
+  </div>
+
+  <p class="local-warning">Dữ liệu đang được lưu tạm trên máy của bạn, vui lòng sao lưu thường xuyên.</p>
+
+  <div class="accounts-list">
+    <table class="accounts-table" *ngIf="accounts.length>0">
+      <thead>
+        <tr>
+          <th (click)="sortBy('stt')">STT <span class="sort-indicator" *ngIf="sortColumn==='stt'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th (click)="sortBy('name')">Tên <span class="sort-indicator" *ngIf="sortColumn==='name'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th class="col-numeric" (click)="sortBy('balance')">Số dư <span class="sort-indicator" *ngIf="sortColumn==='balance'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th class="col-numeric" (click)="sortBy('todayPoints')">Điểm hôm nay <span class="sort-indicator" *ngIf="sortColumn==='todayPoints'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th class="col-numeric" (click)="sortBy('tomorrowPoints')">Điểm ngày mai <span class="sort-indicator" *ngIf="sortColumn==='tomorrowPoints'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th class="col-numeric" (click)="sortBy('pnl')">Lãi/Lỗ <span class="sort-indicator" *ngIf="sortColumn==='pnl'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th class="col-numeric" (click)="sortBy('tradeVolume')">Khối lượng hôm nay <span class="sort-indicator" *ngIf="sortColumn==='tradeVolume'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th class="col-numeric" (click)="sortBy('logoutCountdown')">Đăng xuất <span class="sort-indicator" *ngIf="sortColumn==='logoutCountdown'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+    <tr *ngFor="let account of getDisplayedAccounts(); let i = index"
+      [class.selected]="account.id === selectedAccount?.id"
+      [class.no-volume]="hasNoVolume(account)"
+      (click)="selectAccount(account.id)">
+          <td class="col-stt">{{ i + 1 }}</td>
+          <td class="col-name">{{ account.name }}</td>
+          <td class="col-numeric"> {{ account.balance | number:'1.1-1' }}</td>
+          <!-- 15d Points cell removed -->
+          <td class="col-numeric">{{ getTodayPoints(account) }}</td>
+          <td class="col-numeric">{{ getTomorrowPoints(account) }}</td>
+          <td class="col-numeric" [ngClass]="{ 'positive': getPnL(account)>0, 'negative': getPnL(account)<0 }">{{ (getPnL(account) >= 0 ? '+' : '') + (getPnL(account) | number:'1.1-1') }}</td>
+          <td class="col-numeric">
+            {{ getTodayTradeVolume(account) === undefined ? '' : getTodayTradeVolume(account) }}
+          </td>
+          <td class="col-numeric">
+            <span *ngIf="account.lastLogin">{{ getLogoutCountdown(account) }}</span>
+          </td>
+          <td class="col-actions">
+            <div class="action-buttons">
+              <button class="btn-secondary btn-with-icon btn-login" (click)="openLoginModal(account); $event.stopPropagation()" aria-label="Ghi nhận đăng nhập">
+                <span class="btn-icon">🕒</span>
+                <span class="sr-only">Ghi nhận đăng nhập</span>
+              </button>
+              <button class="btn-danger btn-with-icon btn-delete-one" (click)="deleteAccount(account.id); $event.stopPropagation()" aria-label="Xóa tài khoản">
+                <span class="btn-icon">🗑</span>
+                <span class="sr-only">Xóa tài khoản</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="accounts.length === 0" class="no-accounts">
+      Chưa có tài khoản nào. Nhấn "Tạo tài khoản" để thêm mới.
+    </div>
+  </div>
+</div>
+
+<!-- Đặt modal popup ghi nhận login ngay sau thẻ đóng div.account-manager để đảm bảo overlay toàn trang và không bị che -->
+<div *ngIf="showLoginModal" class="login-modal">
+  <div class="login-modal-content">
+    <button class="btn-close" (click)="closeLoginModal()">×</button>
+    <h3>Ghi nhận đăng nhập cho tài khoản: {{ loginAccount?.name }}</h3>
+    <label>Thời gian đăng nhập:</label>
+    <input type="datetime-local" [(ngModel)]="loginTime" />
+    <div class="modal-actions">
+      <button class="btn-primary left" (click)="confirmLoginWithTime()">Xác nhận</button>
+    </div>
+  </div>
+</div>
+
+<div class="debug-status" style="position:fixed;bottom:10px;right:10px;z-index:99999;">
+  showLoginModal: {{ showLoginModal }}<br>
+  loginAccount: {{ loginAccount?.name || '-' }}<br>
+  loginTime: {{ loginTime || '-' }}
+</div>

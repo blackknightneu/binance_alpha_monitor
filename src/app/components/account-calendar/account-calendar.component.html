@@ -1,0 +1,124 @@
+<div class="calendar-container" *ngIf="selectedAccount">
+  <div class="header">
+    <h3>{{ selectedAccount.name }} — Lịch giao dịch</h3>
+    <div class="nav">
+      <button (click)="prevMonth()">«</button>
+      <strong>{{ viewYear }} / {{ viewMonth + 1 }}</strong>
+      <button (click)="nextMonth()">»</button>
+    </div>
+  </div>
+
+  <div class="calendar-grid">
+    <div class="weekday" *ngFor="let w of ['CN','T2','T3','T4','T5','T6','T7']">{{ w }}</div>
+    <div class="day" *ngFor="let d of days" 
+      [class.has]="d.hasRecord" 
+      [class.future]="d.isFuture"
+      [class.clickable]="!d.isFuture"
+      [class.missing-volume]="d.missingVolume"
+      (click)="selectDay(d)">
+      <div class="label">{{ d.label }}</div>
+      <div class="meta" *ngIf="d.hasRecord">
+  <span class="points">{{ d.points }} điểm</span>
+        <span class="diff" [ngClass]="{ 'positive': d.diff!>0, 'negative': d.diff!<0 }">{{ d.diff | number:'1.2-2' }}</span>
+      </div>
+    </div>
+  </div>
+    <!-- Modal popup editor -->
+    <div *ngIf="editorVisible" class="modal-overlay" (click)="editorVisible=false">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h4>Chỉnh sửa: {{ selectedDate | date:'mediumDate' }}</h4>
+        <div class="form-row balance-row">
+          <label>Số dư dùng tính điểm</label>
+          <div class="balance-controls">
+            <select name="balanceSelect" [(ngModel)]="balance" (ngModelChange)="onBalanceSelectChange($event)" (change)="updateBalancePoints()">
+              <option [ngValue]="0">0 (trống)</option>
+              <option *ngFor="let b of balanceOptions" [ngValue]="b">{{ b | number }}</option>
+              <option [ngValue]="-1">Tùy chỉnh...</option>
+            </select>
+            <input *ngIf="showCustomInput" type="number" [(ngModel)]="customBalance" (change)="onCustomBalanceChange()" 
+                   placeholder="Nhập số dư tùy chỉnh...">
+            <div class="points-inline">
+              <label class="sr">Điểm từ số dư</label>
+              <span class="info-value">{{ calculatedBalancePoints }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-row triple-row">
+          <div class="field">
+            <label>Số dư đầu ngày</label>
+            <input type="number" [(ngModel)]="startBalance" (change)="updateProfitLoss()" autofocus>
+          </div>
+          <div class="field">
+            <label>Số dư cuối ngày</label>
+            <input type="number" [(ngModel)]="endBalance" (change)="updateProfitLoss()">
+          </div>
+          <div class="field">
+            <label>Lãi/Lỗ trong ngày</label>
+            <span class="info-value" [class.positive]="profitLoss > 0" [class.negative]="profitLoss < 0">
+              {{ profitLoss | number:'1.2-2' }}
+            </span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Khối lượng (USD)</label>
+          <select [(ngModel)]="volume" (change)="updateVolumePoints()">
+            <option [ngValue]="0">0 (trống)</option>
+            <option *ngFor="let v of volumeOptions" [ngValue]="v">{{ v | number }}</option>
+          </select>
+        </div>
+      
+        <div class="form-row">
+          <label>Lợi nhuận (USD)</label>
+          <input type="number" [(ngModel)]="profit">
+        </div>
+        <div class="form-row">
+          <label>Điểm thưởng</label>
+          <input type="number" [(ngModel)]="bonusPoints">
+        </div>
+        <div class="form-row">
+          <label>Điểm trừ</label>
+          <input type="number" [(ngModel)]="deductedPoints">
+        </div>
+        <div class="actions">
+          <button class="btn-primary" (click)="saveForDate()">Lưu</button>
+          <button class="btn-secondary" (click)="editorVisible=false">Đóng</button>
+        </div>
+
+        <div class="message" *ngIf="message">{{ message }}</div>
+      </div>
+    </div>
+
+<div *ngIf="selectedAccount" class="recent-panel">
+  <h4>Bản ghi gần đây <small>(16 ngày mới nhất)</small></h4>
+  <table *ngIf="recentRecords.length > 0">
+    <thead>
+      <tr>
+        <th>Ngày</th>
+        <th>Số dư đầu ngày</th>
+        <th>Số dư cuối ngày</th>
+        <th>Số dư tính điểm</th>
+        <th>Khối lượng</th>
+        <th>Lợi nhuận</th>
+        <th>Điểm trừ</th>
+        <th>Điểm thưởng</th>
+        <th>Tổng điểm</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of recentRecords">
+        <td>{{ r.date | date:'dd/MM' }}</td>
+        <td>{{ r.startBalance | number:'1.2-2' }}</td>
+        <td>{{ r.endBalance | number:'1.2-2' }}</td>
+        <td>{{ r.balance | number:'1.2-2' }}</td>
+        <td>{{ r.volume | number:'1.2-2' }}</td>
+        <td>{{ r.profit || 0 | number:'1.2-2' }}</td>
+        <td>{{ r.deductedPoints || 0 }}</td>
+        <td>{{ r.bonusPoints || 0 }}</td>
+        <td>{{ r.totalPoints }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div *ngIf="recentRecords.length === 0" class="no-records">Hiện chưa có bản ghi nào</div>
+</div>
+
+<div *ngIf="!selectedAccount" class="no-account">Chọn một tài khoản để chỉnh sửa lịch</div>

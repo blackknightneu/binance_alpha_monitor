@@ -1,0 +1,42 @@
+<div class="create-account-container">
+  <h2>Create New Account</h2>
+  
+  <form (ngSubmit)="createAccount()" #accountForm="ngForm">
+    <div class="form-group">
+      <label for="accountName">Account Name</label>
+      <input 
+        type="text" 
+        id="accountName" 
+        name="accountName"
+        [(ngModel)]="accountName"
+        required
+        placeholder="Enter account name">
+    </div>
+
+    <div class="form-group">
+      <label for="initialBalance">Initial Balance (USD)</label>
+      <input 
+        type="number" 
+        id="initialBalance" 
+        name="initialBalance"
+        [(ngModel)]="initialBalance"
+        min="0"
+        placeholder="Enter initial balance">
+    </div>
+
+    <div class="button-group">
+      <button 
+        type="submit" 
+        [disabled]="!accountForm.form.valid"
+        class="btn-primary">
+        Create Account
+      </button>
+      <button 
+        type="button" 
+        (click)="cancel()"
+        class="btn-secondary">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>

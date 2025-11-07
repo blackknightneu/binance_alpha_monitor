@@ -1,0 +1,53 @@
+<div class="history-container">
+  <div *ngIf="!selectedAccount" class="no-account">
+    Please select an account to view points history.
+  </div>
+
+  <div *ngIf="selectedAccount">
+    <h2>Points History for {{ selectedAccount.name }}</h2>
+    
+    <div class="total-points">
+      <h3>Total Points: {{ getTotalPoints() }}</h3>
+    </div>
+
+    <div class="history-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Start Balance</th>
+            <th>End Balance</th>
+            <th>Volume</th>
+            <th>Balance Points</th>
+            <th>Volume Points</th>
+            <th>Total Points</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let record of selectedAccount.pointsHistory">
+            <td>{{ record.date | date:'mediumDate' }}</td>
+            <td>${{ record.startBalance | number:'1.2-2' }}</td>
+            <td>${{ record.endBalance | number:'1.2-2' }}</td>
+            <td>${{ record.volume | number:'1.2-2' }}</td>
+            <td>{{ record.balancePoints }}</td>
+            <td>{{ record.volumePoints }}</td>
+            <td>{{ record.totalPoints }}</td>
+            <td>
+              <button 
+                *ngIf="isToday(record.date)"
+                class="btn-edit" 
+                (click)="editRecord(record)">
+                Edit
+              </button>
+              <span *ngIf="record.modified" class="modified-badge">Modified</span>
+            </td>
+          </tr>
+          <tr *ngIf="selectedAccount.pointsHistory.length === 0">
+            <td colspan="6" class="no-data">No points history available</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

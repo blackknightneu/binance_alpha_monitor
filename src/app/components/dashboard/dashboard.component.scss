@@ -1,0 +1,59 @@
+.dashboard-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  h1 {
+    text-align: center;
+    color: #f0b90b;
+    margin-bottom: 2rem;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: stretch;
+    flex-wrap: nowrap;
+
+    .manager-panel {
+      flex: 1.35;
+      min-width: 480px;
+      display: flex;
+      flex-direction: column;
+
+      app-account-manager {
+        flex: 1;
+        display: flex;
+      }
+    }
+
+    .calendar-panel {
+      flex: 1;
+      min-width: 420px;
+      display: flex;
+      flex-direction: column;
+
+      app-account-calendar {
+        flex: 1;
+        display: flex;
+      }
+    }
+  }
+
+  @media (max-width: 1023px) {
+    padding: 1rem;
+
+    .main-layout {
+      gap: 1.5rem;
+      flex-direction: column;
+      flex-wrap: wrap;
+
+      .manager-panel,
+      .calendar-panel {
+        min-width: 0;
+        width: 100%;
+        display: block;
+      }
+    }
+  }
+}
