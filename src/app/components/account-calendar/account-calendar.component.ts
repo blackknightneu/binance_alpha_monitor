@@ -209,18 +209,25 @@ export class AccountCalendarComponent implements OnInit {
       this.updateProfitLoss();
     } else {
       const last = this.accountService.getLastDayBalance(this.selectedAccount.id);
-      this.balance = 0;
-      this.customBalance = 0;
-      this.startBalance = last;
-      this.endBalance = last;
-      this.volume = 0;
+      const latestRecord = this.getLatestRecord(this.selectedAccount);
+      const latestBalanceForPoints = latestRecord ? (latestRecord.balance ?? latestRecord.endBalance ?? last) : last;
+      const latestVolume = latestRecord ? (latestRecord.volume ?? 0) : 0;
+      const latestEnd = latestRecord ? (latestRecord.endBalance ?? latestRecord.balance ?? last) : last;
+      const latestProfit = latestRecord ? (latestRecord.profit ?? 0) : 0;
+      const newStartBalance = latestEnd + latestProfit;
+      this.balance = latestBalanceForPoints;
+      this.customBalance = latestBalanceForPoints;
+      this.showCustomInput = this.balance > 0 && !this.balanceOptions.includes(this.balance);
+
+      this.startBalance = newStartBalance;
+      this.endBalance = 0;
+      this.volume = latestVolume;
       this.bonusPoints = 0;
       this.profit = 0;
       this.deductedPoints = 0;
-      this.calculatedBalancePoints = 0;
-      this.calculatedVolumePoints = 0;
+      this.updateBalancePoints();
+      this.updateVolumePoints();
       this.profitLoss = 0;
-      this.showCustomInput = false;
     }
   }
 
@@ -301,5 +308,17 @@ export class AccountCalendarComponent implements OnInit {
     this.recentRecords = [...this.selectedAccount.pointsHistory]
       .sort((a, b) => b.date.getTime() - a.date.getTime())
       .slice(0, 16);
+  }
+
+  private getLatestRecord(account: Account): PointsRecord | null {
+    if (!account.pointsHistory || account.pointsHistory.length === 0) {
+      return null;
+    }
+    return account.pointsHistory.reduce((latest: PointsRecord | null, current: PointsRecord) => {
+      if (!latest) {
+        return current;
+      }
+      return current.date > latest.date ? current : latest;
+    }, null as PointsRecord | null);
   }
 }

@@ -5,6 +5,7 @@ export interface Account {
     lastUpdated: Date;
     pointsHistory: PointsRecord[];
     lastLogin?: Date;
+    riskDate?: Date;
 }
 
 export interface PointsRecord {

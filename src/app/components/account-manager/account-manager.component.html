@@ -24,41 +24,91 @@
 
   <p class="local-warning">Dữ liệu đang được lưu tạm trên máy của bạn, vui lòng sao lưu thường xuyên.</p>
 
+  <div class="column-selector" *ngIf="accounts.length > 0">
+    <button class="btn-secondary btn-with-icon btn-columns" (click)="openColumnSelector()" aria-label="Chọn cột hiển thị">
+      <span class="btn-icon">☰</span>
+      <span class="sr-only">Chọn cột hiển thị</span>
+    </button>
+    <span class="column-summary">Đang hiển thị {{ getVisibleColumnCount() }} / {{ columnOptions.length }} cột</span>
+  </div>
+
   <div class="accounts-list">
     <table class="accounts-table" *ngIf="accounts.length>0">
       <thead>
         <tr>
           <th (click)="sortBy('stt')">STT <span class="sort-indicator" *ngIf="sortColumn==='stt'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
           <th (click)="sortBy('name')">Tên <span class="sort-indicator" *ngIf="sortColumn==='name'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-          <th class="col-numeric" (click)="sortBy('balance')">Số dư <span class="sort-indicator" *ngIf="sortColumn==='balance'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-          <th class="col-numeric" (click)="sortBy('todayPoints')">Điểm hôm nay <span class="sort-indicator" *ngIf="sortColumn==='todayPoints'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-          <th class="col-numeric" (click)="sortBy('tomorrowPoints')">Điểm ngày mai <span class="sort-indicator" *ngIf="sortColumn==='tomorrowPoints'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-          <th class="col-numeric" (click)="sortBy('pnl')">PnL (hôm nay) <span class="sort-indicator" *ngIf="sortColumn==='pnl'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-          <th class="col-numeric" (click)="sortBy('tradeVolume')">Khối lượng hôm nay <span class="sort-indicator" *ngIf="sortColumn==='tradeVolume'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-          <th class="col-numeric" (click)="sortBy('logoutCountdown')">Đăng xuất <span class="sort-indicator" *ngIf="sortColumn==='logoutCountdown'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <ng-container *ngFor="let option of columnOptions; trackBy: trackColumnOption">
+            <th *ngIf="option.visible"
+                (click)="sortBy(option.id)"
+                [class.col-numeric]="option.id !== 'logoutCountdown' && option.id !== 'riskDate'">
+              {{ option.label }}
+              <span class="sort-indicator" *ngIf="sortColumn===option.id">{{ sortDir==='asc'?'▲':'▼' }}</span>
+            </th>
+          </ng-container>
           <th>Thao tác</th>
         </tr>
       </thead>
       <tbody>
-    <tr *ngFor="let account of getDisplayedAccounts(); let i = index"
-      [class.selected]="account.id === selectedAccount?.id"
-      [class.no-volume]="hasNoVolume(account)"
-      (click)="selectAccount(account.id)">
+        <tr *ngFor="let account of getDisplayedAccounts(); let i = index"
+            [class.selected]="account.id === selectedAccount?.id"
+            [class.no-volume]="hasNoVolume(account)"
+            (click)="selectAccount(account.id)">
           <td class="col-stt">{{ i + 1 }}</td>
           <td class="col-name">{{ account.name }}</td>
-          <td class="col-numeric"> {{ account.balance | number:'1.1-1' }}</td>
-          <!-- 15d Points cell removed -->
-          <td class="col-numeric">{{ getTodayPoints(account) }}</td>
-          <td class="col-numeric">{{ getTomorrowPoints(account) }}</td>
-          <td class="col-numeric" [ngClass]="{ 'positive': getPnL(account)>0, 'negative': getPnL(account)<0 }">{{ (getPnL(account) >= 0 ? '+' : '') + (getPnL(account) | number:'1.1-1') }}</td>
-          <td class="col-numeric">
-            {{ getTodayTradeVolume(account) === undefined ? '' : getTodayTradeVolume(account) }}
-          </td>
-          <td class="col-numeric">
-            <span *ngIf="account.lastLogin">{{ getLogoutCountdown(account) }}</span>
-          </td>
+          <ng-container *ngFor="let option of columnOptions; trackBy: trackColumnOption">
+            <td *ngIf="option.visible"
+                [class.col-numeric]="option.id !== 'logoutCountdown' && option.id !== 'riskDate'"
+                [ngSwitch]="option.id">
+              <ng-container *ngSwitchCase="'todayStartBalance'">
+                {{ getTodayStartBalance(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'todayCost'">
+                <span [ngClass]="{ 'positive': getTodayCost(account) < 0, 'negative': getTodayCost(account) > 0 }">
+                  {{ getTodayCost(account) | number:'1.1-1' }}
+                </span>
+              </ng-container>
+              <ng-container *ngSwitchCase="'todayBalancePoints'">
+                {{ getTodayBalancePoints(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'todayEndBalance'">
+                {{ getTodayEndBalance(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'todayVolumePoints'">
+                {{ getTodayVolumePoints(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'todayVolume'">
+                {{ getTodayTradeVolume(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'todayTotalPoints'">
+                {{ getTodayPoints(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'tomorrowPoints'">
+                {{ getTomorrowPoints(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'riskDate'">
+                {{ formatRiskDisplay(account) }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'logoutCountdown'">
+                <span *ngIf="account.lastLogin">{{ getLogoutCountdown(account) }}</span>
+              </ng-container>
+              <ng-container *ngSwitchCase="'totalPnL'">
+                <span [ngClass]="{ 'positive': getTotalPnL(account) >= 0, 'negative': getTotalPnL(account) < 0 }">
+                  {{ (getTotalPnL(account) >= 0 ? '+' : '') + (getTotalPnL(account) | number:'1.1-1') }}
+                </span>
+              </ng-container>
+            </td>
+          </ng-container>
           <td class="col-actions">
             <div class="action-buttons">
+              <button class="btn-secondary btn-with-icon btn-rename" (click)="openRenameModal(account); $event.stopPropagation()" aria-label="Đổi tên tài khoản">
+                <span class="btn-icon">✎</span>
+                <span class="sr-only">Đổi tên tài khoản</span>
+              </button>
+              <button class="btn-secondary btn-with-icon btn-risk" (click)="openRiskModal(account); $event.stopPropagation()" aria-label="Ghi nhận ngày bị risk">
+                <span class="btn-icon">⚠</span>
+                <span class="sr-only">Ghi nhận ngày bị risk</span>
+              </button>
               <button class="btn-secondary btn-with-icon btn-login" (click)="openLoginModal(account); $event.stopPropagation()" aria-label="Ghi nhận đăng nhập">
                 <span class="btn-icon">🕒</span>
                 <span class="sr-only">Ghi nhận đăng nhập</span>
@@ -88,6 +138,51 @@
     <input type="datetime-local" [(ngModel)]="loginTime" />
     <div class="modal-actions">
       <button class="btn-primary left" (click)="confirmLoginWithTime()">Xác nhận</button>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="showColumnSelector" class="modal-overlay">
+  <div class="modal-content columns">
+    <h3>Chọn cột hiển thị</h3>
+    <div class="column-list">
+      <label *ngFor="let option of columnOptions; trackBy: trackColumnOption">
+   <input type="checkbox"
+     [checked]="tempColumnVisibility[option.id]"
+     (change)="toggleTempColumn(option.id, $any($event.target).checked)" />
+        {{ option.label }}
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" (click)="confirmColumnSelection()">Xác nhận</button>
+      <button class="btn-secondary" (click)="cancelColumnSelection()">Hủy</button>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="showRenameModal" class="modal-overlay">
+  <div class="modal-content rename">
+    <h3>Đổi tên tài khoản</h3>
+    <p *ngIf="renameAccount" class="rename-subtitle">Tài khoản hiện tại: <strong>{{ renameAccount.name }}</strong></p>
+    <label for="rename-input">Tên mới</label>
+    <input id="rename-input" type="text" [(ngModel)]="renameName" placeholder="Nhập tên mới" />
+    <div class="modal-actions">
+      <button class="btn-primary" (click)="confirmRename()">Lưu</button>
+      <button class="btn-secondary" (click)="closeRenameModal()">Hủy</button>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="showRiskModal" class="modal-overlay">
+  <div class="modal-content risk">
+    <h3>Ghi nhận ngày bị risk</h3>
+    <p *ngIf="riskAccount" class="risk-subtitle">Tài khoản: <strong>{{ riskAccount.name }}</strong></p>
+    <label for="risk-date">Ngày bị risk</label>
+    <input id="risk-date" type="date" [(ngModel)]="riskDateInput" />
+    <div class="modal-actions">
+      <button class="btn-primary" (click)="confirmRiskDate()">Lưu</button>
+      <button class="btn-danger" *ngIf="riskAccount?.riskDate" (click)="clearRiskDate()">Xóa</button>
+      <button class="btn-secondary" (click)="closeRiskModal()">Hủy</button>
     </div>
   </div>
 </div>

@@ -29,6 +29,7 @@ export class AccountService {
       this.accounts = parsedData.map((acc: any) => ({
         ...acc,
         lastUpdated: new Date(acc.lastUpdated),
+        riskDate: acc.riskDate ? new Date(acc.riskDate) : undefined,
         pointsHistory: acc.pointsHistory.map((record: any) => ({
           ...record,
           date: new Date(record.date)
@@ -86,6 +87,20 @@ export class AccountService {
     }
   }
 
+  updateAccountName(accountId: string, newName: string): void {
+    const account = this.accounts.find(acc => acc.id === accountId);
+    if (!account) return;
+
+    account.name = newName;
+    account.lastUpdated = new Date();
+
+    this.accountsSubject.next(this.accounts);
+    if (this.selectedAccountSubject.value?.id === accountId) {
+      this.selectedAccountSubject.next(account);
+    }
+    this.saveAccounts();
+  }
+
   updateAccountPoints(accountId: string, startBalance: number, endBalance: number, volume: number, balance = 0, bonusPoints = 0, profit = 0, deductedPoints = 0): void {
     const account = this.accounts.find(acc => acc.id === accountId);
     if (!account) return;
@@ -118,6 +133,20 @@ export class AccountService {
 
     this.accountsSubject.next(this.accounts);
     this.selectedAccountSubject.next(account);
+    this.saveAccounts();
+  }
+
+  updateRiskDate(accountId: string, riskDate: Date | null): void {
+    const account = this.accounts.find(acc => acc.id === accountId);
+    if (!account) return;
+
+    account.riskDate = riskDate ?? undefined;
+    account.lastUpdated = new Date();
+
+    this.accountsSubject.next(this.accounts);
+    if (this.selectedAccountSubject.value?.id === accountId) {
+      this.selectedAccountSubject.next(account);
+    }
     this.saveAccounts();
   }
 
@@ -559,6 +588,7 @@ export class AccountService {
         this.accounts = parsedData.map(acc => ({
           ...acc,
           lastUpdated: new Date(acc.lastUpdated),
+          riskDate: acc.riskDate ? new Date(acc.riskDate) : undefined,
           pointsHistory: acc.pointsHistory.map((record: any) => ({
             ...record,
             date: new Date(record.date)

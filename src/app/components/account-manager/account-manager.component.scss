@@ -58,6 +58,24 @@
     flex: 1;
     overflow: auto;
   }
+
+  .column-selector {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+
+    .btn-columns {
+      background: #f3f4f6;
+      color: #1f2937;
+    }
+
+    .column-summary {
+      font-size: 0.85rem;
+      color: #475569;
+    }
+  }
 }
 
 .accounts-table {
@@ -199,6 +217,14 @@
   color: #f59e0b;
 }
 
+.btn-risk .btn-icon {
+  color: #f97316;
+}
+
+.btn-rename .btn-icon {
+  color: #2563eb;
+}
+
 .btn-new .btn-icon {
   color: #fff;
   font-size: 1.15rem;
@@ -227,6 +253,16 @@
 .accounts-table tbody tr td button {
   cursor: pointer;
   pointer-events: auto;
+}
+
+.positive {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.negative {
+  color: #dc2626;
+  font-weight: 600;
 }
 
 .import-btn {
@@ -261,6 +297,111 @@
   justify-content: center;
   background: rgba(17, 24, 39, 0.45);
   z-index: 2000;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.75rem;
+  min-width: 320px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  h3 {
+    margin: 0;
+    color: #111827;
+    text-align: center;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+
+    .btn-primary,
+    .btn-secondary {
+      padding: 0.5rem 1.25rem;
+    }
+  }
+}
+
+.modal-content.columns {
+  .column-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem 1rem;
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: #1f2937;
+    }
+  }
+}
+
+.modal-content.rename,
+.modal-content.risk {
+  align-items: stretch;
+
+  .rename-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #475569;
+    text-align: center;
+
+    strong {
+      color: #1f2937;
+    }
+  }
+
+  .risk-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #475569;
+    text-align: center;
+
+    strong {
+      color: #1f2937;
+    }
+  }
+
+  label {
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  input[type="text"],
+  input[type="date"] {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #cbd5f5;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+  }
 }
 
 .login-modal-content {

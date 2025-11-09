@@ -93,6 +93,7 @@
   <table *ngIf="recentRecords.length > 0">
     <thead>
       <tr>
+        <th>STT</th>
         <th>Ngày</th>
         <th>Số dư đầu ngày</th>
         <th>Số dư cuối ngày</th>
@@ -105,7 +106,8 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let r of recentRecords">
+      <tr *ngFor="let r of recentRecords; let idx = index">
+        <td>{{ idx + 1 }}</td>
         <td>{{ r.date | date:'dd/MM' }}</td>
         <td>{{ r.startBalance | number:'1.2-2' }}</td>
         <td>{{ r.endBalance | number:'1.2-2' }}</td>
