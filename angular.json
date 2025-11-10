@@ -2,15 +2,10 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "newProjectRoot": "projects",
-
   "projects": {
     "binance-alpha": {
       "projectType": "application",
-      "schematics": {
-        "@schematics/angular:component": {
-          "style": "scss"
-        }
-      },
+      "schematics": { "@schematics/angular:component": { "style": "scss" } },
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
@@ -18,27 +13,16 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-
+            "outputPath": "docs",
             "index": "src/index.html",
-             "outputPath": "docs",
             "browser": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
-            "styles": [
-              "src/styles.scss"
-            ],
+            "assets": [{ "glob": "**/*", "input": "public" }],
+            "styles": ["src/styles.scss"],
             "scripts": [],
-            "outputMode": "static",
-            "baseHref": "/binance-alpha/"
+            "outputMode": "static"
           },
           "configurations": {
             "production": {
@@ -67,12 +51,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
-            "production": {
-              "buildTarget": "binance-alpha:build:production"
-            },
-            "development": {
-              "buildTarget": "binance-alpha:build:development"
-            }
+            "production": { "buildTarget": "binance-alpha:build:production" },
+            "development": { "buildTarget": "binance-alpha:build:development" }
           },
           "defaultConfiguration": "development"
         },
@@ -82,28 +62,16 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
+            "polyfills": ["zone.js", "zone.js/testing"],
             "tsConfig": "tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
-            ],
-            "styles": [
-              "src/styles.scss"
-            ],
+            "assets": [{ "glob": "**/*", "input": "public" }],
+            "styles": ["src/styles.scss"],
             "scripts": []
           }
         }
       }
     }
   },
-  "cli": {
-    "analytics": "608beb58-4354-473f-aa21-a45bbc79c417"
-  }
+  "cli": { "analytics": "608beb58-4354-473f-aa21-a45bbc79c417" }
 }
