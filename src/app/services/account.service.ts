@@ -8,6 +8,7 @@ import { isPlatformBrowser } from '@angular/common';
 })
 export class AccountService {
   private readonly STORAGE_KEY = 'binance_alpha_accounts';
+  private readonly LOGOUT_WINDOW_MS = 5 * 24 * 60 * 60 * 1000;
   private accounts: Account[] = [];
   private accountsSubject = new BehaviorSubject<Account[]>([]);
   private selectedAccountSubject = new BehaviorSubject<Account | null>(null);
@@ -29,6 +30,7 @@ export class AccountService {
       this.accounts = parsedData.map((acc: any) => ({
         ...acc,
         lastUpdated: new Date(acc.lastUpdated),
+        lastLogin: acc.lastLogin ? new Date(acc.lastLogin) : undefined,
         riskDate: acc.riskDate ? new Date(acc.riskDate) : undefined,
         pointsHistory: acc.pointsHistory.map((record: any) => ({
           ...record,
@@ -298,7 +300,7 @@ export class AccountService {
    * Columns: AccountName,Date,Start,End,Vol,Profit,Deducted,Pts,15d Points
    */
   exportAllToCsv(): string {
-    const header = ['AccountName','Date','Start','End','Vol','Profit','Deducted','Pts','15d Points'];
+    const header = ['AccountName','RiskDate','LogoutDeadline','Date','Start','End','Vol','Profit','Deducted','Pts','15d Points'];
     const rows: string[] = [header.join(',')];
 
     for (const acc of this.accounts) {
@@ -306,8 +308,13 @@ export class AccountService {
       const recs = [...acc.pointsHistory].sort((a,b)=>a.date.getTime()-b.date.getTime());
       for (const r of recs) {
         const pts15 = this.getAlphaPointsAtDate(acc.id, r.date);
+        const riskDate = acc.riskDate ? new Date(acc.riskDate) : null;
+        const lastLogin = acc.lastLogin ? new Date(acc.lastLogin) : null;
+        const logoutDeadline = lastLogin ? new Date(lastLogin.getTime() + this.LOGOUT_WINDOW_MS) : null;
         const cols = [
           this.escapeCsv(acc.name),
+          riskDate ? this.formatIsoDate(riskDate) : '',
+          logoutDeadline ? this.formatIsoDateTime(logoutDeadline) : '',
           this.formatIsoDate(r.date),
           this.numOrEmpty(r.startBalance),
           this.numOrEmpty(r.endBalance),
@@ -327,13 +334,18 @@ export class AccountService {
   exportAccountToCsv(accountId: string): string {
     const account = this.accounts.find(a=>a.id===accountId);
     if (!account) return '';
-    const header = ['AccountName','Date','Start','End','Vol','Profit','Deducted','Pts','15d Points'];
+    const header = ['AccountName','RiskDate','LogoutDeadline','Date','Start','End','Vol','Profit','Deducted','Pts','15d Points'];
     const rows: string[] = [header.join(',')];
     const recs = [...account.pointsHistory].sort((a,b)=>a.date.getTime()-b.date.getTime());
     for (const r of recs) {
       const pts15 = this.getAlphaPointsAtDate(account.id, r.date);
+      const riskDate = account.riskDate ? new Date(account.riskDate) : null;
+      const lastLogin = account.lastLogin ? new Date(account.lastLogin) : null;
+      const logoutDeadline = lastLogin ? new Date(lastLogin.getTime() + this.LOGOUT_WINDOW_MS) : null;
       const cols = [
         this.escapeCsv(account.name),
+        riskDate ? this.formatIsoDate(riskDate) : '',
+        logoutDeadline ? this.formatIsoDateTime(logoutDeadline) : '',
         this.formatIsoDate(r.date),
         this.numOrEmpty(r.startBalance),
         this.numOrEmpty(r.endBalance),
@@ -355,6 +367,10 @@ export class AccountService {
     return `${yyyy}-${mm}-${dd}`;
   }
 
+  private formatIsoDateTime(d: Date): string {
+    return d.toISOString();
+  }
+
   private escapeCsv(s: string): string {
     if (s == null) return '';
     const str = String(s);
@@ -367,6 +383,68 @@ export class AccountService {
   private numOrEmpty(n: number | undefined | null): string {
     if (n === undefined || n === null) return '';
     return String(n);
+  }
+
+  private parseDateOnlyString(value: string): Date | null {
+    if (!value) {
+      return null;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const mmddParts = trimmed.split('/');
+    if (mmddParts.length === 3) {
+      const month = parseInt(mmddParts[0], 10);
+      const day = parseInt(mmddParts[1], 10);
+      const year = parseInt(mmddParts[2], 10);
+      if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+        return new Date(Date.UTC(year, month - 1, day));
+      }
+    }
+
+    const isoParts = trimmed.split('-');
+    if (isoParts.length === 3) {
+      const year = parseInt(isoParts[0], 10);
+      const month = parseInt(isoParts[1], 10);
+      const day = parseInt(isoParts[2], 10);
+      if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+        return new Date(Date.UTC(year, month - 1, day));
+      }
+    }
+
+    const ddmmParts = trimmed.split('/');
+    if (ddmmParts.length === 3) {
+      const day = parseInt(ddmmParts[0], 10);
+      const month = parseInt(ddmmParts[1], 10);
+      const year = parseInt(ddmmParts[2], 10);
+      if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+        return new Date(Date.UTC(year, month - 1, day));
+      }
+    }
+
+    const fallback = new Date(trimmed);
+    if (!Number.isNaN(fallback.getTime())) {
+      return new Date(Date.UTC(fallback.getUTCFullYear(), fallback.getUTCMonth(), fallback.getUTCDate()));
+    }
+
+    return null;
+  }
+
+  private parseDateTimeString(value: string): Date | null {
+    if (!value) {
+      return null;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+    return parsed;
   }
 
   /**
@@ -395,8 +473,8 @@ export class AccountService {
 
   /**
    * Import CSV content. Expected columns (header order flexible):
-   * AccountName,Date,Start,End,Vol,Profit,Deducted[,Pts][,15d Points]
-   * The Pts and 15d Points columns are ignored on import; points are recalculated.
+  * AccountName,RiskDate,LogoutDeadline,Date,Start,End,Vol,Profit,Deducted[,Pts][,15d Points]
+  * The Pts and 15d Points columns are ignored on import; points are recalculated.
    * Returns an object with counts.
    */
   importFromCsv(csvData: string): { imported: number; errors: number } {
@@ -438,14 +516,16 @@ export class AccountService {
       console.log(`\nProcessing row ${i}:`, row);
       const cols = this.splitCsvRow(row);
       try {
-  const accountName = (cols[colIndex['accountname']] ?? cols[0] ?? '').trim();
-  const dateStr = (cols[colIndex['date']] ?? cols[1] ?? '').trim();
-  const startStr = (cols[colIndex['start']] ?? cols[2] ?? '').trim();
-  const endStr = (cols[colIndex['end']] ?? cols[3] ?? '').trim();
-  const volStr = (cols[colIndex['vol']] ?? cols[4] ?? '').trim();
-  const profitStr = (cols[colIndex['profit']] ?? cols[5] ?? '').trim();
-  const deductedStr = (cols[colIndex['deducted']] ?? cols[6] ?? '').trim();
-  const balanceStr = (colIndex['balance'] !== undefined ? cols[colIndex['balance']] : '').trim();
+        const accountName = (cols[colIndex['accountname']] ?? cols[0] ?? '').trim();
+        const dateStr = (cols[colIndex['date']] ?? cols[1] ?? '').trim();
+        const startStr = (cols[colIndex['start']] ?? cols[2] ?? '').trim();
+        const endStr = (cols[colIndex['end']] ?? cols[3] ?? '').trim();
+        const volStr = (cols[colIndex['vol']] ?? cols[4] ?? '').trim();
+        const profitStr = (cols[colIndex['profit']] ?? cols[5] ?? '').trim();
+        const deductedStr = (cols[colIndex['deducted']] ?? cols[6] ?? '').trim();
+        const balanceStr = (colIndex['balance'] !== undefined ? cols[colIndex['balance']] : '').trim();
+        const riskDateStr = colIndex['riskdate'] !== undefined ? (cols[colIndex['riskdate']] ?? '').trim() : '';
+        const logoutDeadlineStr = colIndex['logoutdeadline'] !== undefined ? (cols[colIndex['logoutdeadline']] ?? '').trim() : '';
 
         console.log('Parsed values:', {
           accountName,
@@ -454,67 +534,28 @@ export class AccountService {
           endStr,
           volStr,
           profitStr,
-          deductedStr
+          deductedStr,
+          riskDateStr,
+          logoutDeadlineStr
         });
 
-        if (!accountName || !dateStr) { 
-          throw new Error(`Missing account or date. Account: ${accountName}, Date: ${dateStr}`); 
+        if (!accountName || !dateStr) {
+          throw new Error(`Missing account or date. Account: ${accountName}, Date: ${dateStr}`);
         }
 
-        // Try multiple date formats
-        let date: Date | null = null;
-        
-        // Try MM/DD/YYYY format
+        const date = this.parseDateOnlyString(dateStr);
         if (!date) {
-          const parts = dateStr.split('/');
-          if (parts.length === 3) {
-            const month = parseInt(parts[0], 10);
-            const day = parseInt(parts[1], 10);
-            const year = parseInt(parts[2], 10);
-            if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-              date = new Date(Date.UTC(year, month - 1, day));
-            }
-          }
-        }
-
-        // Try YYYY-MM-DD format
-        if (!date) {
-          const parts = dateStr.split('-');
-          if (parts.length === 3) {
-            const year = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10);
-            const day = parseInt(parts[2], 10);
-            if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-              date = new Date(Date.UTC(year, month - 1, day));
-            }
-          }
-        }
-
-        // Try DD/MM/YYYY format
-        if (!date) {
-          const parts = dateStr.split('/');
-          if (parts.length === 3) {
-            const day = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10);
-            const year = parseInt(parts[2], 10);
-            if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-              date = new Date(Date.UTC(year, month - 1, day));
-            }
-          }
-        }
-
-        if (!date || isNaN(date.getTime())) {
           throw new Error(`Could not parse date. Supported formats: MM/DD/YYYY, YYYY-MM-DD, DD/MM/YYYY. Got: ${dateStr}`);
         }
 
         console.log('Parsed date:', dateStr, 'to UTC:', date.toISOString());
 
-  const start = parseFloat(startStr || '0') || 0;
-  const end = parseFloat(endStr || '0') || 0;
-  const vol = parseInt(volStr || '0', 10) || 0;
-  const profit = parseFloat(profitStr || '0') || 0;
-  const deducted = parseFloat(deductedStr || '0') || 0;
-  const balance = balanceStr ? parseFloat(balanceStr) || 0 : end;
+        const start = parseFloat(startStr || '0') || 0;
+        const end = parseFloat(endStr || '0') || 0;
+        const vol = parseInt(volStr || '0', 10) || 0;
+        const profit = parseFloat(profitStr || '0') || 0;
+        const deducted = parseFloat(deductedStr || '0') || 0;
+        const balance = balanceStr ? parseFloat(balanceStr) || 0 : end;
 
         console.log('Converted values:', {
           date: date.toISOString(),
@@ -524,6 +565,16 @@ export class AccountService {
           profit,
           deducted
         });
+
+        const riskDateValue = riskDateStr ? this.parseDateOnlyString(riskDateStr) : null;
+        if (riskDateStr && !riskDateValue) {
+          console.warn(`Invalid risk date '${riskDateStr}' on row ${i}, ignoring.`);
+        }
+
+        const logoutDeadlineValue = logoutDeadlineStr ? this.parseDateTimeString(logoutDeadlineStr) : null;
+        if (logoutDeadlineStr && !logoutDeadlineValue) {
+          console.warn(`Invalid logout deadline '${logoutDeadlineStr}' on row ${i}, ignoring.`);
+        }
 
         // find or create account by name
         let account = this.accounts.find(a => a.name === accountName);
@@ -539,6 +590,14 @@ export class AccountService {
           this.accounts.push(account);
         } else {
           console.log(`Found existing account: ${accountName}`);
+        }
+
+        if (riskDateValue) {
+          account.riskDate = riskDateValue;
+        }
+
+        if (logoutDeadlineValue) {
+          account.lastLogin = new Date(logoutDeadlineValue.getTime() - this.LOGOUT_WINDOW_MS);
         }
 
         // set record (this will compute points properly)
@@ -588,6 +647,7 @@ export class AccountService {
         this.accounts = parsedData.map(acc => ({
           ...acc,
           lastUpdated: new Date(acc.lastUpdated),
+          lastLogin: acc.lastLogin ? new Date(acc.lastLogin) : undefined,
           riskDate: acc.riskDate ? new Date(acc.riskDate) : undefined,
           pointsHistory: acc.pointsHistory.map((record: any) => ({
             ...record,

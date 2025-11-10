@@ -2,6 +2,7 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "newProjectRoot": "projects",
+
   "projects": {
     "binance-alpha": {
       "projectType": "application",
@@ -17,8 +18,9 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/binance-alpha",
+
             "index": "src/index.html",
+             "outputPath": "docs",
             "browser": "src/main.ts",
             "polyfills": [
               "zone.js"
@@ -35,7 +37,8 @@
               "src/styles.scss"
             ],
             "scripts": [],
-            "outputMode": "static"
+            "outputMode": "static",
+            "baseHref": "/binance-alpha/"
           },
           "configurations": {
             "production": {
