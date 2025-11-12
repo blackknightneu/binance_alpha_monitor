@@ -216,17 +216,6 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   return accounts;
   }
 
-  // Xóa tất cả tài khoản
-  deleteAllAccounts(): void {
-    if (confirm('Are you sure you want to delete ALL accounts?')) {
-      (this.accounts ?? []).forEach((acc: Account) => {
-        if (acc && acc.id) {
-          this.accountService.deleteAccount(acc.id);
-        }
-      });
-    }
-  }
-
   deleteAccount(accountId: string): void {
     if (confirm('Are you sure you want to delete this account?')) {
       this.accountService.deleteAccount(accountId);

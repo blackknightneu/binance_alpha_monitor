@@ -300,29 +300,31 @@ export class AccountService {
    * Columns: AccountName,Date,Start,End,Vol,Profit,Deducted,Pts,15d Points
    */
   exportAllToCsv(): string {
-    const header = ['AccountName','RiskDate','LogoutDeadline','Date','Start','End','Vol','Profit','Deducted','Pts','15d Points'];
+  const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','Bonus'];
     const rows: string[] = [header.join(',')];
 
     for (const acc of this.accounts) {
       // sort records by date asc
       const recs = [...acc.pointsHistory].sort((a,b)=>a.date.getTime()-b.date.getTime());
       for (const r of recs) {
-        const pts15 = this.getAlphaPointsAtDate(acc.id, r.date);
         const riskDate = acc.riskDate ? new Date(acc.riskDate) : null;
         const lastLogin = acc.lastLogin ? new Date(acc.lastLogin) : null;
         const logoutDeadline = lastLogin ? new Date(lastLogin.getTime() + this.LOGOUT_WINDOW_MS) : null;
         const cols = [
           this.escapeCsv(acc.name),
           riskDate ? this.formatIsoDate(riskDate) : '',
+          lastLogin ? this.formatIsoDateTime(lastLogin) : '',
           logoutDeadline ? this.formatIsoDateTime(logoutDeadline) : '',
           this.formatIsoDate(r.date),
           this.numOrEmpty(r.startBalance),
           this.numOrEmpty(r.endBalance),
+          this.numOrEmpty(r.balance),
+          this.numOrEmpty(r.balancePoints),
           this.numOrEmpty(r.volume),
+          this.numOrEmpty(r.volumePoints),
           this.numOrEmpty(r.profit ?? 0),
           this.numOrEmpty(r.deductedPoints ?? 0),
-          this.numOrEmpty(r.totalPoints ?? 0),
-          this.numOrEmpty(pts15)
+          this.numOrEmpty(r.bonusPoints ?? 0)
         ];
         rows.push(cols.join(','));
       }
@@ -334,26 +336,28 @@ export class AccountService {
   exportAccountToCsv(accountId: string): string {
     const account = this.accounts.find(a=>a.id===accountId);
     if (!account) return '';
-    const header = ['AccountName','RiskDate','LogoutDeadline','Date','Start','End','Vol','Profit','Deducted','Pts','15d Points'];
+  const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','Bonus'];
     const rows: string[] = [header.join(',')];
     const recs = [...account.pointsHistory].sort((a,b)=>a.date.getTime()-b.date.getTime());
     for (const r of recs) {
-      const pts15 = this.getAlphaPointsAtDate(account.id, r.date);
       const riskDate = account.riskDate ? new Date(account.riskDate) : null;
       const lastLogin = account.lastLogin ? new Date(account.lastLogin) : null;
       const logoutDeadline = lastLogin ? new Date(lastLogin.getTime() + this.LOGOUT_WINDOW_MS) : null;
       const cols = [
         this.escapeCsv(account.name),
         riskDate ? this.formatIsoDate(riskDate) : '',
+        lastLogin ? this.formatIsoDateTime(lastLogin) : '',
         logoutDeadline ? this.formatIsoDateTime(logoutDeadline) : '',
         this.formatIsoDate(r.date),
         this.numOrEmpty(r.startBalance),
         this.numOrEmpty(r.endBalance),
+        this.numOrEmpty(r.balance),
+        this.numOrEmpty(r.balancePoints),
         this.numOrEmpty(r.volume),
+        this.numOrEmpty(r.volumePoints),
         this.numOrEmpty(r.profit ?? 0),
         this.numOrEmpty(r.deductedPoints ?? 0),
-        this.numOrEmpty(r.totalPoints ?? 0),
-        this.numOrEmpty(pts15)
+        this.numOrEmpty(r.bonusPoints ?? 0)
       ];
       rows.push(cols.join(','));
     }
@@ -473,8 +477,7 @@ export class AccountService {
 
   /**
    * Import CSV content. Expected columns (header order flexible):
-  * AccountName,RiskDate,LogoutDeadline,Date,Start,End,Vol,Profit,Deducted[,Pts][,15d Points]
-  * The Pts and 15d Points columns are ignored on import; points are recalculated.
+  * AccountName,RiskDate,LastLogin,LogoutDeadline,Date,Start,End,Balance,BalancePoints,Volume,VolumePoints,Profit,Deducted,Bonus
    * Returns an object with counts.
    */
   importFromCsv(csvData: string): { imported: number; errors: number } {
@@ -499,6 +502,55 @@ export class AccountService {
       colIndex[key] = i;
     });
 
+    const aliasPairs: Array<[string, string[]]> = [
+      ['volume', ['vol']],
+      ['vol', ['volume']],
+      ['start', ['startbalance', 'start_balance']],
+      ['end', ['endbalance', 'end_balance']],
+      ['balance', ['bal']],
+      ['balancepoints', ['balance_points', 'balancepoint']],
+      ['volumepoints', ['volume_points', 'volumepoint', 'volpoints']],
+      ['deducted', ['deductedpoints', 'deducted_points']],
+      ['bonus', ['bonuspoints', 'bonus_points']],
+  ['lastlogin', ['last_login']],
+      ['logoutdeadline', ['logout', 'logout_deadline']],
+      ['riskdate', ['risk', 'risk_date']]
+    ];
+
+    aliasPairs.forEach(([primary, aliases]) => {
+      const normalizedPrimary = primary.toLowerCase();
+      if (colIndex[normalizedPrimary] === undefined) {
+        for (const alias of aliases) {
+          const normalizedAlias = alias.toLowerCase();
+          if (colIndex[normalizedAlias] !== undefined) {
+            colIndex[normalizedPrimary] = colIndex[normalizedAlias];
+            break;
+          }
+        }
+      }
+      if (colIndex[normalizedPrimary] !== undefined) {
+        const resolvedIndex = colIndex[normalizedPrimary];
+        aliases.forEach(alias => {
+          const normalizedAlias = alias.toLowerCase();
+          if (colIndex[normalizedAlias] === undefined) {
+            colIndex[normalizedAlias] = resolvedIndex;
+          }
+        });
+      }
+    });
+
+    const parseNumber = (value: string | null | undefined): number | null => {
+      if (value === null || value === undefined) {
+        return null;
+      }
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return null;
+      }
+      const parsed = Number(trimmed);
+      return Number.isNaN(parsed) ? null : parsed;
+    };
+
     const required = ['accountname','date','start','end','vol','profit','deducted'];
     // Check for missing required columns
     const missingColumns = required.filter(col => !(col in colIndex));
@@ -516,25 +568,51 @@ export class AccountService {
       console.log(`\nProcessing row ${i}:`, row);
       const cols = this.splitCsvRow(row);
       try {
-        const accountName = (cols[colIndex['accountname']] ?? cols[0] ?? '').trim();
-        const dateStr = (cols[colIndex['date']] ?? cols[1] ?? '').trim();
-        const startStr = (cols[colIndex['start']] ?? cols[2] ?? '').trim();
-        const endStr = (cols[colIndex['end']] ?? cols[3] ?? '').trim();
-        const volStr = (cols[colIndex['vol']] ?? cols[4] ?? '').trim();
-        const profitStr = (cols[colIndex['profit']] ?? cols[5] ?? '').trim();
-        const deductedStr = (cols[colIndex['deducted']] ?? cols[6] ?? '').trim();
-        const balanceStr = (colIndex['balance'] !== undefined ? cols[colIndex['balance']] : '').trim();
-        const riskDateStr = colIndex['riskdate'] !== undefined ? (cols[colIndex['riskdate']] ?? '').trim() : '';
-        const logoutDeadlineStr = colIndex['logoutdeadline'] !== undefined ? (cols[colIndex['logoutdeadline']] ?? '').trim() : '';
+        const getValue = (fallbackIndex: number | null, ...keys: string[]): string => {
+          for (const key of keys) {
+            const normalized = key.toLowerCase();
+            if (colIndex[normalized] !== undefined) {
+              return (cols[colIndex[normalized]] ?? '').trim();
+            }
+          }
+          if (fallbackIndex !== null && fallbackIndex !== undefined && fallbackIndex >= 0 && fallbackIndex < cols.length) {
+            return (cols[fallbackIndex] ?? '').trim();
+          }
+          return '';
+        };
+
+  const hasRiskDateColumn = colIndex['riskdate'] !== undefined;
+  const hasLastLoginColumn = colIndex['lastlogin'] !== undefined;
+  const hasLogoutDeadlineColumn = colIndex['logoutdeadline'] !== undefined;
+
+  const accountName = getValue(0, 'accountname');
+        const dateStr = getValue(1, 'date');
+        const startStr = getValue(2, 'start', 'startbalance', 'start_balance');
+        const endStr = getValue(3, 'end', 'endbalance', 'end_balance');
+        const balanceStr = getValue(null, 'balance', 'bal');
+        const balancePointsStr = getValue(null, 'balancepoints', 'balance_points', 'balancepoint');
+        const volumeStr = getValue(4, 'volume', 'vol');
+        const volumePointsStr = getValue(null, 'volumepoints', 'volume_points', 'volpoints');
+        const profitStr = getValue(5, 'profit');
+        const deductedStr = getValue(6, 'deducted', 'deductedpoints', 'deducted_points');
+        const bonusStr = getValue(null, 'bonus', 'bonuspoints', 'bonus_points');
+  const lastLoginStr = getValue(null, 'lastlogin', 'last_login');
+  const riskDateStr = getValue(null, 'riskdate', 'risk', 'risk_date');
+  const logoutDeadlineStr = getValue(null, 'logoutdeadline', 'logout', 'logout_deadline');
 
         console.log('Parsed values:', {
           accountName,
           dateStr,
           startStr,
           endStr,
-          volStr,
+          balanceStr,
+          balancePointsStr,
+          volumeStr,
+          volumePointsStr,
           profitStr,
           deductedStr,
+          bonusStr,
+          lastLoginStr,
           riskDateStr,
           logoutDeadlineStr
         });
@@ -550,31 +628,46 @@ export class AccountService {
 
         console.log('Parsed date:', dateStr, 'to UTC:', date.toISOString());
 
-        const start = parseFloat(startStr || '0') || 0;
-        const end = parseFloat(endStr || '0') || 0;
-        const vol = parseInt(volStr || '0', 10) || 0;
-        const profit = parseFloat(profitStr || '0') || 0;
-        const deducted = parseFloat(deductedStr || '0') || 0;
-        const balance = balanceStr ? parseFloat(balanceStr) || 0 : end;
-
-        console.log('Converted values:', {
-          date: date.toISOString(),
-          start,
-          end,
-          vol,
-          profit,
-          deducted
-        });
+  const start = parseNumber(startStr) ?? 0;
+  const end = parseNumber(endStr) ?? 0;
+  const volume = parseNumber(volumeStr) ?? 0;
+  const profit = parseNumber(profitStr) ?? 0;
+  const deducted = parseNumber(deductedStr) ?? 0;
+  const balance = parseNumber(balanceStr) ?? end;
+  const balancePointsValue = parseNumber(balancePointsStr);
+  const volumePointsValue = parseNumber(volumePointsStr);
+  const bonusValue = parseNumber(bonusStr);
 
         const riskDateValue = riskDateStr ? this.parseDateOnlyString(riskDateStr) : null;
         if (riskDateStr && !riskDateValue) {
           console.warn(`Invalid risk date '${riskDateStr}' on row ${i}, ignoring.`);
         }
 
+        const lastLoginValue = lastLoginStr ? this.parseDateTimeString(lastLoginStr) : null;
+        if (lastLoginStr && !lastLoginValue) {
+          console.warn(`Invalid last login '${lastLoginStr}' on row ${i}, ignoring.`);
+        }
+
         const logoutDeadlineValue = logoutDeadlineStr ? this.parseDateTimeString(logoutDeadlineStr) : null;
         if (logoutDeadlineStr && !logoutDeadlineValue) {
           console.warn(`Invalid logout deadline '${logoutDeadlineStr}' on row ${i}, ignoring.`);
         }
+
+        console.log('Converted values:', {
+          date: date.toISOString(),
+          start,
+          end,
+          volume,
+          profit,
+          deducted,
+          balance,
+          balancePointsValue,
+          volumePointsValue,
+          bonusValue,
+          lastLoginValue,
+          riskDateValue,
+          logoutDeadlineValue
+        });
 
         // find or create account by name
         let account = this.accounts.find(a => a.name === accountName);
@@ -592,16 +685,54 @@ export class AccountService {
           console.log(`Found existing account: ${accountName}`);
         }
 
-        if (riskDateValue) {
-          account.riskDate = riskDateValue;
+        if (hasRiskDateColumn) {
+          if (riskDateValue) {
+            account.riskDate = riskDateValue;
+          } else if (riskDateStr === '') {
+            account.riskDate = undefined;
+          }
         }
 
-        if (logoutDeadlineValue) {
-          account.lastLogin = new Date(logoutDeadlineValue.getTime() - this.LOGOUT_WINDOW_MS);
+        let lastLoginHandled = false;
+        if (hasLastLoginColumn) {
+          if (lastLoginValue) {
+            account.lastLogin = lastLoginValue;
+          } else if (lastLoginStr === '') {
+            account.lastLogin = undefined;
+          }
+          lastLoginHandled = true;
         }
 
-        // set record (this will compute points properly)
-  this.setRecordForDate(account.id, date, start, end, vol, balance, profit, deducted, 0);
+        if (!lastLoginHandled && hasLogoutDeadlineColumn) {
+          if (logoutDeadlineValue) {
+            account.lastLogin = new Date(logoutDeadlineValue.getTime() - this.LOGOUT_WINDOW_MS);
+          } else if (logoutDeadlineStr === '') {
+            account.lastLogin = undefined;
+          }
+        }
+
+    // set record (this will compute points properly, overrides applied below)
+    this.setRecordForDate(account.id, date, start, end, volume, balance, profit, deducted, bonusValue ?? 0);
+
+        const record = this.getRecordForDate(account.id, date);
+        if (record) {
+          record.startBalance = start;
+          record.endBalance = end;
+          record.balance = balance;
+          record.volume = volume;
+          record.profit = profit;
+          record.deductedPoints = deducted;
+          if (balancePointsValue !== null) {
+            record.balancePoints = balancePointsValue;
+          }
+          if (volumePointsValue !== null) {
+            record.volumePoints = volumePointsValue;
+          }
+          if (bonusValue !== null) {
+            record.bonusPoints = bonusValue;
+          }
+          record.totalPoints = (record.balancePoints || 0) + (record.volumePoints || 0) + (record.bonusPoints || 0) - (record.deductedPoints || 0);
+        }
         imported++;
         console.log('Record imported successfully');
       } catch (error: any) {

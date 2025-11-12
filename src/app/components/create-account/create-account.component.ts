@@ -13,7 +13,6 @@ import { AccountService } from '../../services/account.service';
 })
 export class CreateAccountComponent {
   accountName: string = '';
-  initialBalance: number = 0;
 
   constructor(
     private accountService: AccountService,

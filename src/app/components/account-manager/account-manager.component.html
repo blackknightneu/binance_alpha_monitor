@@ -6,17 +6,13 @@
         <span class="btn-icon">+</span>
         <span class="sr-only">Tạo tài khoản mới</span>
       </button>
-       <button (click)="deleteAllAccounts()" class="btn-danger btn-with-icon btn-delete-all" aria-label="Xóa tất cả tài khoản">
-        <span class="btn-icon">🗑</span>
-        <span class="sr-only">Xóa tất cả tài khoản</span>
-      </button>
-      <button (click)="exportData()" class="btn-ghost btn-with-icon btn-export" aria-label="Xuất dữ liệu">
+      <button (click)="exportData()" class="btn-ghost btn-with-icon btn-export" aria-label="Tải xuống CSV">
         <span class="btn-icon">⇩</span>
-        <span class="sr-only">Xuất dữ liệu</span>
+        <span>Xuất CSV</span>
       </button>
-      <label class="btn-ghost import-btn btn-with-icon" aria-label="Nhập dữ liệu">
+      <label class="btn-ghost import-btn btn-with-icon" aria-label="Tải lên CSV">
         <span class="btn-icon">⇪</span>
-        <span class="sr-only">Nhập dữ liệu</span>
+        <span>Nhập CSV</span>
         <input type="file" accept=".csv" (change)="importData($event)" hidden>
       </label>
     </div>
