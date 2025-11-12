@@ -15,7 +15,7 @@
           "options": {
    
               "outputPath": {
-              "base": "docs",
+              "base": "dict",
               "browser": ""
             },
             "index": "src/index.html",
