@@ -5,11 +5,58 @@ import { AccountService } from '../../services/account.service';
 import { Account, PointsRecord } from '../../models/account.model';
 import { FormsModule } from '@angular/forms';
 
+type Language = 'vi' | 'en';
+
 interface ColumnOption {
   id: string;
-  label: string;
+  labels: Record<Language, string>;
   visible: boolean;
 }
+
+interface TextBundle {
+  title: string;
+  createAccount: string;
+  exportCsv: string;
+  exportCsvAria: string;
+  importCsv: string;
+  importCsvAria: string;
+  localWarning: string;
+  columnSelectorButton: string;
+  columnSummaryTemplate: string;
+  stt: string;
+  name: string;
+  actions: string;
+  rename: string;
+  risk: string;
+  login: string;
+  delete: string;
+  noAccounts: string;
+  loginModalTitle: string;
+  loginModalLabel: string;
+  confirm: string;
+  cancel: string;
+  riskModalTitle: string;
+  riskModalAccount: string;
+  riskModalDateLabel: string;
+  save: string;
+  remove: string;
+  columnModalTitle: string;
+  renameModalTitle: string;
+  renameModalSubtitle: string;
+  renameModalInput: string;
+  riskNotSet: string;
+  daysSuffix: string;
+  logoutExpired: string;
+  confirmDeleteAccount: string;
+  riskDateRequired: string;
+  riskDateInvalid: string;
+  languageEnglish: string;
+  languageVietnamese: string;
+  switchToEnglish: string;
+  switchToVietnamese: string;
+}
+
+type TextKey = keyof TextBundle;
 
 @Component({
   selector: 'app-account-manager',
@@ -21,23 +68,189 @@ interface ColumnOption {
 export class AccountManagerComponent implements OnInit, OnDestroy {
   private readonly LOGIN_TIMEZONE_OFFSET = 7; // GMT+7
   private readonly COLUMN_STORAGE_KEY = 'account-manager-visible-columns';
+  private readonly LANGUAGE_STORAGE_KEY = 'account-manager-language';
   accounts: Account[] = [];
   selectedAccount: Account | null = null;
   sortColumn: string = 'name';
   sortDir: 'asc' | 'desc' = 'asc';
+  language: Language = 'vi';
+
+  private readonly translations: Record<Language, TextBundle> = {
+    vi: {
+      title: 'Quản lý tài khoản',
+      createAccount: 'Tạo tài khoản mới',
+      exportCsv: 'Xuất CSV',
+      exportCsvAria: 'Tải xuống CSV',
+      importCsv: 'Nhập CSV',
+      importCsvAria: 'Tải lên CSV',
+      localWarning: 'Dữ liệu chỉ lưu trên trình duyệt của bạn. Nếu muốn sử dụng ở trình duyệt hoặc máy khác, vui lòng export dữ liệu và import lại.',
+      columnSelectorButton: 'Chọn cột hiển thị',
+      columnSummaryTemplate: 'Đang hiển thị {current} / {total} cột',
+      stt: 'STT',
+      name: 'Tên',
+      actions: 'Thao tác',
+      rename: 'Đổi tên tài khoản',
+      risk: 'Ghi nhận ngày bị risk',
+      login: 'Ghi nhận đăng nhập',
+      delete: 'Xóa tài khoản',
+      noAccounts: 'Chưa có tài khoản nào. Nhấn "Tạo tài khoản" để thêm mới.',
+      loginModalTitle: 'Ghi nhận đăng nhập cho tài khoản',
+      loginModalLabel: 'Thời gian đăng nhập (GMT+7):',
+      confirm: 'Xác nhận',
+      cancel: 'Hủy',
+      riskModalTitle: 'Ghi nhận ngày bị risk',
+      riskModalAccount: 'Tài khoản:',
+      riskModalDateLabel: 'Ngày bị risk',
+      save: 'Lưu',
+      remove: 'Xóa',
+      columnModalTitle: 'Chọn cột hiển thị',
+      renameModalTitle: 'Đổi tên tài khoản',
+      renameModalSubtitle: 'Tài khoản hiện tại:',
+      renameModalInput: 'Tên mới',
+      riskNotSet: 'Chưa risk',
+      daysSuffix: 'ngày',
+      logoutExpired: 'Đã logout',
+      confirmDeleteAccount: 'Bạn có chắc chắn muốn xóa tài khoản này?',
+      riskDateRequired: 'Vui lòng chọn ngày bị risk',
+      riskDateInvalid: 'Ngày không hợp lệ',
+      languageEnglish: 'English',
+      languageVietnamese: 'Tiếng Việt',
+  switchToEnglish: 'Chuyển sang tiếng Anh',
+  switchToVietnamese: 'Chuyển sang tiếng Việt'
+    },
+    en: {
+      title: 'Account Management',
+      createAccount: 'Create new account',
+      exportCsv: 'Export CSV',
+      exportCsvAria: 'Download CSV',
+      importCsv: 'Import CSV',
+      importCsvAria: 'Upload CSV',
+      localWarning: 'Data is stored only in your browser. To use it on another browser or device, please export it and then import again.',
+      columnSelectorButton: 'Select visible columns',
+      columnSummaryTemplate: 'Showing {current} / {total} columns',
+      stt: 'No.',
+      name: 'Name',
+      actions: 'Actions',
+      rename: 'Rename account',
+      risk: 'Record risk date',
+      login: 'Record login',
+      delete: 'Delete account',
+      noAccounts: 'No accounts yet. Click "Create account" to add one.',
+      loginModalTitle: 'Record login for account',
+      loginModalLabel: 'Login time (GMT+7):',
+      confirm: 'Confirm',
+      cancel: 'Cancel',
+      riskModalTitle: 'Record risk date',
+      riskModalAccount: 'Account:',
+      riskModalDateLabel: 'Risk date',
+      save: 'Save',
+      remove: 'Remove',
+      columnModalTitle: 'Select visible columns',
+      renameModalTitle: 'Rename account',
+      renameModalSubtitle: 'Current account:',
+      renameModalInput: 'New name',
+      riskNotSet: 'Not risked',
+      daysSuffix: 'days',
+      logoutExpired: 'Logged out',
+      confirmDeleteAccount: 'Are you sure you want to delete this account?',
+      riskDateRequired: 'Please choose a risk date',
+      riskDateInvalid: 'Invalid date',
+      languageEnglish: 'English',
+      languageVietnamese: 'Vietnamese',
+  switchToEnglish: 'Switch to English',
+  switchToVietnamese: 'Switch to Vietnamese'
+    }
+  };
 
   columnOptions: ColumnOption[] = [
-    { id: 'todayStartBalance', label: 'Số dư đầu ngày hôm nay', visible: false },
-    { id: 'todayCost', label: 'Chi phí hôm nay', visible: true },
-    { id: 'todayBalancePoints', label: 'Điểm số dư hôm nay', visible: false },
-    { id: 'todayEndBalance', label: 'Số dư cuối ngày hôm nay', visible: true },
-    { id: 'todayVolumePoints', label: 'Điểm volume hôm nay', visible: false },
-    { id: 'todayVolume', label: 'Volume hôm nay', visible: true },
-    { id: 'todayTotalPoints', label: 'Điểm hôm nay (D-15->D-1)', visible: true },
-  { id: 'tomorrowPoints', label: 'Điểm ngày mai (D-14->D)', visible: true },
-  { id: 'riskDate', label: 'Ngày bị risk (ngày)', visible: false },
-    { id: 'logoutCountdown', label: 'Thời gian logout', visible: true },
-    { id: 'totalPnL', label: 'Tổng PnL từ trước', visible: true }
+    {
+      id: 'todayStartBalance',
+      labels: {
+        vi: 'Số dư đầu ngày hôm nay',
+        en: "Today's opening balance"
+      },
+      visible: false
+    },
+    {
+      id: 'todayCost',
+      labels: {
+        vi: 'Chi phí hôm nay',
+        en: "Today's cost"
+      },
+      visible: true
+    },
+    {
+      id: 'todayBalancePoints',
+      labels: {
+        vi: 'Điểm số dư hôm nay',
+        en: "Today's balance points"
+      },
+      visible: false
+    },
+    {
+      id: 'todayEndBalance',
+      labels: {
+        vi: 'Số dư cuối ngày hôm nay',
+        en: "Today's closing balance"
+      },
+      visible: true
+    },
+    {
+      id: 'todayVolumePoints',
+      labels: {
+        vi: 'Điểm volume hôm nay',
+        en: "Today's volume points"
+      },
+      visible: false
+    },
+    {
+      id: 'todayVolume',
+      labels: {
+        vi: 'Volume hôm nay',
+        en: "Today's volume"
+      },
+      visible: true
+    },
+    {
+      id: 'todayTotalPoints',
+      labels: {
+        vi: 'Điểm hôm nay (D-15->D-1)',
+        en: 'Points today (D-15->D-1)'
+      },
+      visible: true
+    },
+    {
+      id: 'tomorrowPoints',
+      labels: {
+        vi: 'Điểm ngày mai (D-14->D)',
+        en: 'Points tomorrow (D-14->D)'
+      },
+      visible: true
+    },
+    {
+      id: 'riskDate',
+      labels: {
+        vi: 'Ngày bị risk (ngày)',
+        en: 'Risk date (days)'
+      },
+      visible: false
+    },
+    {
+      id: 'logoutCountdown',
+      labels: {
+        vi: 'Thời gian logout',
+        en: 'Logout countdown'
+      },
+      visible: true
+    },
+    {
+      id: 'totalPnL',
+      labels: {
+        vi: 'Tổng PnL từ trước',
+        en: 'Total historical PnL'
+      },
+      visible: true
+    }
   ];
 
   showLoginModal = false;
@@ -89,6 +302,56 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
 
   cancelColumnSelection(): void {
     this.showColumnSelector = false;
+  }
+
+  t(key: TextKey): string {
+    return this.translations[this.language][key];
+  }
+
+  getColumnLabel(option: ColumnOption): string {
+    return option.labels[this.language];
+  }
+
+  getColumnSummaryText(): string {
+    const template = this.t('columnSummaryTemplate');
+    return template
+      .replace('{current}', String(this.getVisibleColumnCount()))
+      .replace('{total}', String(this.columnOptions.length));
+  }
+
+  getLanguageToggleLabel(): string {
+    return this.language === 'vi' ? this.t('languageEnglish') : this.t('languageVietnamese');
+  }
+
+  getLanguageToggleAriaLabel(): string {
+    return this.language === 'vi' ? this.t('switchToEnglish') : this.t('switchToVietnamese');
+  }
+
+  toggleLanguage(): void {
+    const nextLanguage: Language = this.language === 'vi' ? 'en' : 'vi';
+    this.setLanguage(nextLanguage);
+  }
+
+  private setLanguage(language: Language): void {
+    this.language = language;
+    this.saveLanguage();
+  }
+
+  private loadLanguage(): void {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+    const stored = window.localStorage.getItem(this.LANGUAGE_STORAGE_KEY);
+    if (stored === 'vi' || stored === 'en') {
+      this.language = stored;
+    }
+  }
+
+  private saveLanguage(): void {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+    window.localStorage.setItem(this.LANGUAGE_STORAGE_KEY, this.language);
   }
 
   private loadColumnVisibility(): void {
@@ -146,6 +409,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   constructor(public accountService: AccountService) {}
 
   ngOnInit(): void {
+    this.loadLanguage();
     this.loadColumnVisibility();
     this.accountService.getAccounts().subscribe(accounts => {
       this.accounts = accounts;
@@ -217,7 +481,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   }
 
   deleteAccount(accountId: string): void {
-    if (confirm('Are you sure you want to delete this account?')) {
+    if (confirm(this.t('confirmDeleteAccount'))) {
       this.accountService.deleteAccount(accountId);
     }
   }
@@ -427,12 +691,12 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       return;
     }
     if (!this.riskDateInput) {
-      alert('Vui lòng chọn ngày bị risk');
+      alert(this.t('riskDateRequired'));
       return;
     }
     const parsed = this.parseRiskDateInput(this.riskDateInput);
     if (!parsed) {
-      alert('Ngày không hợp lệ');
+      alert(this.t('riskDateInvalid'));
       return;
     }
     this.accountService.updateRiskDate(this.riskAccount.id, parsed);
@@ -474,11 +738,12 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
 
   formatRiskDisplay(account: Account): string {
     if (!account.riskDate) {
-      return 'Chưa risk';
+      return this.t('riskNotSet');
     }
     const days = this.getRiskDays(account);
     const dateText = this.formatDateForDisplay(account.riskDate);
-    return `${dateText} (${days} ngày)`;
+  const suffix = this.language === 'en' ? (days === 1 ? 'day' : this.t('daysSuffix')) : this.t('daysSuffix');
+    return `${dateText} (${days} ${suffix})`;
   }
 
   private formatDateForRiskInput(date: Date): string {
@@ -532,7 +797,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     const logoutTime = new Date(account.lastLogin);
     logoutTime.setDate(logoutTime.getDate() + 5);
     const msLeft = logoutTime.getTime() - now.getTime();
-    if (msLeft <= 0) return 'Đã logout';
+    if (msLeft <= 0) return this.t('logoutExpired');
     const days = Math.floor(msLeft / (1000 * 60 * 60 * 24));
     const hours = Math.floor((msLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     return `${days}d ${hours}h`;

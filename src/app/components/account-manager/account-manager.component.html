@@ -1,48 +1,52 @@
 <div class="account-manager">
   <div class="header">
-    <h2>Quản lý tài khoản</h2>
+    <h2>{{ t('title') }}</h2>
     <div class="actions">
-      <button routerLink="/create-account" class="btn-primary btn-with-icon btn-new" aria-label="Tạo tài khoản mới">
+      <button routerLink="/create-account" class="btn-primary btn-with-icon btn-new" [attr.aria-label]="t('createAccount')">
         <span class="btn-icon">+</span>
-        <span class="sr-only">Tạo tài khoản mới</span>
+        <span class="sr-only">{{ t('createAccount') }}</span>
       </button>
-      <button (click)="exportData()" class="btn-ghost btn-with-icon btn-export" aria-label="Tải xuống CSV">
+      <button (click)="exportData()" class="btn-ghost btn-with-icon btn-export" [attr.aria-label]="t('exportCsvAria')">
         <span class="btn-icon">⇩</span>
-        <span>Xuất CSV</span>
+        <span>{{ t('exportCsv') }}</span>
       </button>
-      <label class="btn-ghost import-btn btn-with-icon" aria-label="Tải lên CSV">
+      <label class="btn-ghost import-btn btn-with-icon" [attr.aria-label]="t('importCsvAria')">
         <span class="btn-icon">⇪</span>
-        <span>Nhập CSV</span>
+        <span>{{ t('importCsv') }}</span>
         <input type="file" accept=".csv" (change)="importData($event)" hidden>
       </label>
+      <button class="btn-ghost btn-with-icon btn-language" (click)="toggleLanguage()" [attr.aria-label]="getLanguageToggleAriaLabel()">
+        <span class="btn-icon">🌐</span>
+        <span>{{ getLanguageToggleLabel() }}</span>
+      </button>
     </div>
   </div>
 
-  <p class="local-warning">Dữ liệu đang được lưu tạm trên máy của bạn, vui lòng sao lưu thường xuyên.</p>
+  <p class="local-warning">{{ t('localWarning') }}</p>
 
   <div class="column-selector" *ngIf="accounts.length > 0">
-    <button class="btn-secondary btn-with-icon btn-columns" (click)="openColumnSelector()" aria-label="Chọn cột hiển thị">
+    <button class="btn-secondary btn-with-icon btn-columns" (click)="openColumnSelector()" [attr.aria-label]="t('columnSelectorButton')">
       <span class="btn-icon">☰</span>
-      <span class="sr-only">Chọn cột hiển thị</span>
+      <span class="sr-only">{{ t('columnSelectorButton') }}</span>
     </button>
-    <span class="column-summary">Đang hiển thị {{ getVisibleColumnCount() }} / {{ columnOptions.length }} cột</span>
+    <span class="column-summary">{{ getColumnSummaryText() }}</span>
   </div>
 
   <div class="accounts-list">
     <table class="accounts-table" *ngIf="accounts.length>0">
       <thead>
         <tr>
-          <th (click)="sortBy('stt')">STT <span class="sort-indicator" *ngIf="sortColumn==='stt'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-          <th (click)="sortBy('name')">Tên <span class="sort-indicator" *ngIf="sortColumn==='name'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th (click)="sortBy('stt')">{{ t('stt') }} <span class="sort-indicator" *ngIf="sortColumn==='stt'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th (click)="sortBy('name')">{{ t('name') }} <span class="sort-indicator" *ngIf="sortColumn==='name'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
           <ng-container *ngFor="let option of columnOptions; trackBy: trackColumnOption">
             <th *ngIf="option.visible"
                 (click)="sortBy(option.id)"
                 [class.col-numeric]="option.id !== 'logoutCountdown' && option.id !== 'riskDate'">
-              {{ option.label }}
+              {{ getColumnLabel(option) }}
               <span class="sort-indicator" *ngIf="sortColumn===option.id">{{ sortDir==='asc'?'▲':'▼' }}</span>
             </th>
           </ng-container>
-          <th>Thao tác</th>
+          <th>{{ t('actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -97,21 +101,21 @@
           </ng-container>
           <td class="col-actions">
             <div class="action-buttons">
-              <button class="btn-secondary btn-with-icon btn-rename" (click)="openRenameModal(account); $event.stopPropagation()" aria-label="Đổi tên tài khoản">
+              <button class="btn-secondary btn-with-icon btn-rename" (click)="openRenameModal(account); $event.stopPropagation()" [attr.aria-label]="t('rename')">
                 <span class="btn-icon">✎</span>
-                <span class="sr-only">Đổi tên tài khoản</span>
+                <span class="sr-only">{{ t('rename') }}</span>
               </button>
-              <button class="btn-secondary btn-with-icon btn-risk" (click)="openRiskModal(account); $event.stopPropagation()" aria-label="Ghi nhận ngày bị risk">
+              <button class="btn-secondary btn-with-icon btn-risk" (click)="openRiskModal(account); $event.stopPropagation()" [attr.aria-label]="t('risk')">
                 <span class="btn-icon">⚠</span>
-                <span class="sr-only">Ghi nhận ngày bị risk</span>
+                <span class="sr-only">{{ t('risk') }}</span>
               </button>
-              <button class="btn-secondary btn-with-icon btn-login" (click)="openLoginModal(account); $event.stopPropagation()" aria-label="Ghi nhận đăng nhập">
+              <button class="btn-secondary btn-with-icon btn-login" (click)="openLoginModal(account); $event.stopPropagation()" [attr.aria-label]="t('login')">
                 <span class="btn-icon">🕒</span>
-                <span class="sr-only">Ghi nhận đăng nhập</span>
+                <span class="sr-only">{{ t('login') }}</span>
               </button>
-              <button class="btn-danger btn-with-icon btn-delete-one" (click)="deleteAccount(account.id); $event.stopPropagation()" aria-label="Xóa tài khoản">
+              <button class="btn-danger btn-with-icon btn-delete-one" (click)="deleteAccount(account.id); $event.stopPropagation()" [attr.aria-label]="t('delete')">
                 <span class="btn-icon">🗑</span>
-                <span class="sr-only">Xóa tài khoản</span>
+                <span class="sr-only">{{ t('delete') }}</span>
               </button>
             </div>
           </td>
@@ -120,7 +124,7 @@
     </table>
 
     <div *ngIf="accounts.length === 0" class="no-accounts">
-      Chưa có tài khoản nào. Nhấn "Tạo tài khoản" để thêm mới.
+      {{ t('noAccounts') }}
     </div>
   </div>
 </div>
@@ -129,56 +133,56 @@
 <div *ngIf="showLoginModal" class="login-modal">
   <div class="login-modal-content">
     <button class="btn-close" (click)="closeLoginModal()">×</button>
-    <h3>Ghi nhận đăng nhập cho tài khoản: {{ loginAccount?.name }}</h3>
-  <label>Thời gian đăng nhập (GMT+7):</label>
+    <h3>{{ t('loginModalTitle') }}: {{ loginAccount?.name }}</h3>
+  <label>{{ t('loginModalLabel') }}</label>
     <input type="datetime-local" [(ngModel)]="loginTime" />
     <div class="modal-actions">
-      <button class="btn-primary left" (click)="confirmLoginWithTime()">Xác nhận</button>
+      <button class="btn-primary left" (click)="confirmLoginWithTime()">{{ t('confirm') }}</button>
     </div>
   </div>
 </div>
 
 <div *ngIf="showColumnSelector" class="modal-overlay">
   <div class="modal-content columns">
-    <h3>Chọn cột hiển thị</h3>
+    <h3>{{ t('columnModalTitle') }}</h3>
     <div class="column-list">
       <label *ngFor="let option of columnOptions; trackBy: trackColumnOption">
    <input type="checkbox"
      [checked]="tempColumnVisibility[option.id]"
      (change)="toggleTempColumn(option.id, $any($event.target).checked)" />
-        {{ option.label }}
+        {{ getColumnLabel(option) }}
       </label>
     </div>
     <div class="modal-actions">
-      <button class="btn-primary" (click)="confirmColumnSelection()">Xác nhận</button>
-      <button class="btn-secondary" (click)="cancelColumnSelection()">Hủy</button>
+      <button class="btn-primary" (click)="confirmColumnSelection()">{{ t('confirm') }}</button>
+      <button class="btn-secondary" (click)="cancelColumnSelection()">{{ t('cancel') }}</button>
     </div>
   </div>
 </div>
 
 <div *ngIf="showRenameModal" class="modal-overlay">
   <div class="modal-content rename">
-    <h3>Đổi tên tài khoản</h3>
-    <p *ngIf="renameAccount" class="rename-subtitle">Tài khoản hiện tại: <strong>{{ renameAccount.name }}</strong></p>
-    <label for="rename-input">Tên mới</label>
-    <input id="rename-input" type="text" [(ngModel)]="renameName" placeholder="Nhập tên mới" />
+    <h3>{{ t('renameModalTitle') }}</h3>
+    <p *ngIf="renameAccount" class="rename-subtitle">{{ t('renameModalSubtitle') }} <strong>{{ renameAccount.name }}</strong></p>
+    <label for="rename-input">{{ t('renameModalInput') }}</label>
+    <input id="rename-input" type="text" [(ngModel)]="renameName" [placeholder]="t('renameModalInput')" />
     <div class="modal-actions">
-      <button class="btn-primary" (click)="confirmRename()">Lưu</button>
-      <button class="btn-secondary" (click)="closeRenameModal()">Hủy</button>
+      <button class="btn-primary" (click)="confirmRename()">{{ t('save') }}</button>
+      <button class="btn-secondary" (click)="closeRenameModal()">{{ t('cancel') }}</button>
     </div>
   </div>
 </div>
 
 <div *ngIf="showRiskModal" class="modal-overlay">
   <div class="modal-content risk">
-    <h3>Ghi nhận ngày bị risk</h3>
-    <p *ngIf="riskAccount" class="risk-subtitle">Tài khoản: <strong>{{ riskAccount.name }}</strong></p>
-    <label for="risk-date">Ngày bị risk</label>
+    <h3>{{ t('riskModalTitle') }}</h3>
+    <p *ngIf="riskAccount" class="risk-subtitle">{{ t('riskModalAccount') }} <strong>{{ riskAccount.name }}</strong></p>
+    <label for="risk-date">{{ t('riskModalDateLabel') }}</label>
     <input id="risk-date" type="date" [(ngModel)]="riskDateInput" />
     <div class="modal-actions">
-      <button class="btn-primary" (click)="confirmRiskDate()">Lưu</button>
-      <button class="btn-danger" *ngIf="riskAccount?.riskDate" (click)="clearRiskDate()">Xóa</button>
-      <button class="btn-secondary" (click)="closeRiskModal()">Hủy</button>
+      <button class="btn-primary" (click)="confirmRiskDate()">{{ t('save') }}</button>
+      <button class="btn-danger" *ngIf="riskAccount?.riskDate" (click)="clearRiskDate()">{{ t('remove') }}</button>
+      <button class="btn-secondary" (click)="closeRiskModal()">{{ t('cancel') }}</button>
     </div>
   </div>
 </div>
