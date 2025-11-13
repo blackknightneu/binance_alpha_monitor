@@ -17,10 +17,7 @@ export interface PointsRecord {
     balancePoints: number;
     totalPoints: number;
     volume: number;
-    modified: boolean;     // Flag to track if the record was manually modified
     // optional fields for daily profit collected and any points deducted manually
     profit?: number;
     deductedPoints?: number;
-    // optional bonus points coming from other tasks/events
-    bonusPoints?: number;
 }

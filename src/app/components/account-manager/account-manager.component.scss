@@ -1,7 +1,6 @@
 .account-manager {
   padding: 2rem;
   width: 100%;
-  max-width: 100%;
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -14,17 +13,32 @@
     padding: 1.5rem 1rem;
     border-radius: 0;
     box-shadow: none;
-    max-width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .header {
+      gap: 0.75rem;
+
+      h2 {
+        flex-basis: 100%;
+      }
+
+      .actions {
+        justify-content: flex-start;
+        flex-basis: 100%;
+      }
+    }
   }
 
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
     margin-bottom: 1.75rem;
     padding: 1.1rem 1.4rem;
     background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(6px);
     border-radius: 14px;
     border: 1px solid rgba(148, 163, 184, 0.18);
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
@@ -34,12 +48,16 @@
       color: #0f172a;
       font-weight: 700;
       letter-spacing: 0.01em;
+      flex: 1 1 220px;
     }
 
     .actions {
       display: flex;
       gap: 0.65rem;
       align-items: center;
+      justify-content: flex-end;
+      flex: 1 1 240px;
+      flex-wrap: wrap;
     }
   }
 
@@ -78,6 +96,40 @@
   }
 }
 
+.btn-language-floating {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.15);
+  color: #1f2937;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  font-weight: 600;
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, border 0.2s ease;
+  z-index: 5;
+  white-space: nowrap;
+
+  .btn-icon {
+    font-size: 1rem;
+  }
+
+  &:hover {
+    background: rgba(37, 99, 235, 0.25);
+    border-color: rgba(37, 99, 235, 0.45);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
 .accounts-table {
   width: 100%;
   border-collapse: collapse;
@@ -96,7 +148,7 @@
 }
 
 .accounts-table th {
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    background: #f3f4f6;
   color: #111827;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -108,7 +160,7 @@
 
 .accounts-table tbody tr {
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition: all 0.18s ease;
 }
 
 .accounts-table tbody tr:hover {
@@ -135,7 +187,15 @@
 .col-stt {
   text-align: center;
   color: #6b7280;
-  width: 48px;
+  width: 60px;
+}
+
+.col-name {
+  width: 200px;
+}
+
+.col-actions {
+  width: 200px;
 }
 
 .action-buttons {
@@ -152,7 +212,6 @@
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s ease;
 }
 
 .btn-with-icon {
@@ -162,18 +221,32 @@
   width: 2.6rem;
   height: 2.6rem;
   padding: 0;
-  border-radius: 999px;
+  border-radius: 50%;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
-  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
-  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.6rem 1.35rem;
+  border-radius: 50rem;
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  line-height: 1;
+  min-height: 2.6rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
 }
 
 .btn-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 1.2rem;
+  height: 1.2rem;
   font-size: 1.05rem;
   line-height: 1;
 }
@@ -181,7 +254,7 @@
 .btn-primary {
   background: #2563eb;
   color: #fff;
-  padding: 8px 14px;
+  padding: 0.6rem 1.35rem;
 }
 
 .btn-primary.left {
@@ -203,10 +276,14 @@
 }
 
 .btn-ghost {
-  background: rgba(255, 255, 255, 0.8);
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1f2937;
+  border: 1px solid rgba(148, 163, 184, 0.35);
   padding: 0;
+}
+
+.btn-ghost.btn-pill {
+  padding: 0.6rem 1.35rem;
 }
 
 .btn-export .btn-icon {
@@ -235,19 +312,16 @@
   color: #fff;
 }
 
-.btn-with-icon:hover {
+.btn-with-icon:hover,
+.btn-pill:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
 }
 
-.btn-with-icon:active {
+.btn-with-icon:active,
+.btn-pill:active {
   transform: translateY(0);
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
-}
-
-.btn-with-icon:focus-visible {
-  outline: 3px solid rgba(59, 130, 246, 0.45);
-  outline-offset: 3px;
 }
 
 .accounts-table tbody tr td button {
@@ -267,12 +341,6 @@
 
 .import-btn {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  padding: 0;
 
   input[type="file"] {
     position: absolute;
@@ -286,33 +354,29 @@
   color: #10b981;
 }
 
-.login-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(17, 24, 39, 0.45);
-  z-index: 2000;
-}
-
+.login-modal,
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(17, 24, 39, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(17, 24, 39, 0.45);
+}
+
+.login-modal {
+  z-index: 2000;
+}
+
+.modal-overlay {
   z-index: 2100;
 }
 
-.modal-content {
+.modal-content,
+.login-modal-content {
   background: #fff;
   border-radius: 14px;
   padding: 1.75rem;
@@ -321,22 +385,27 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
 
-  h3 {
-    margin: 0;
-    color: #111827;
-    text-align: center;
-  }
+.login-modal-content {
+  padding: 2rem;
+}
 
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
+.modal-content h3,
+.login-modal-content h3 {
+  margin: 0;
+  color: #111827;
+  text-align: center;
+}
 
-    .btn-primary,
-    .btn-secondary {
-      padding: 0.5rem 1.25rem;
-    }
+.modal-content .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.5rem 1.25rem;
   }
 }
 
@@ -360,17 +429,7 @@
 .modal-content.risk {
   align-items: stretch;
 
-  .rename-subtitle {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #475569;
-    text-align: center;
-
-    strong {
-      color: #1f2937;
-    }
-  }
-
+  .rename-subtitle,
   .risk-subtitle {
     margin: 0;
     font-size: 0.9rem;
@@ -394,31 +453,12 @@
     border: 1px solid #cbd5f5;
     border-radius: 8px;
     font-size: 0.95rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:focus {
-      outline: none;
       border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
     }
   }
-}
-
-.login-modal-content {
-  position: relative;
-  background: #fff;
-  padding: 2rem;
-  border-radius: 14px;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
-  min-width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.login-modal-content h3 {
-  margin: 0;
-  color: #111827;
 }
 
 .login-modal-content label {
@@ -483,29 +523,28 @@
 }
 
 @media (max-width: 760px) {
-  .accounts-table thead {
-    display: none;
+  .accounts-table {
+    thead {
+      display: none;
+    }
+
+    &,
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+
+    tr {
+      margin-bottom: 0.75rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 0.75rem;
+    }
   }
 
-  .accounts-table,
-  .accounts-table tbody,
-  .accounts-table tr,
-  .accounts-table td {
-    display: block;
-    width: 100%;
-  }
-
-  .accounts-table tr {
-    margin-bottom: 0.75rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 0.75rem;
-  }
-
-  .col-numeric {
-    text-align: left;
-  }
-
+  .col-numeric,
   .col-actions {
     text-align: left;
   }

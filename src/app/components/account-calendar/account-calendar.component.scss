@@ -14,9 +14,9 @@
   flex-direction: column;
 
   .header { display:flex; justify-content:space-between; align-items:center; }
-  h3 { margin: 0; }
-
-  .nav button { margin: 0 0.25rem; }
+  .header-center { text-align: center; flex: 1; font-weight: bold; }
+  .header-right { display: flex; align-items: center; }
+  .header-right button { margin: 0 0.25rem; }
 
   .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 0.75rem; }
   .weekday { text-align:center; font-weight:600; padding:4px 0; }
@@ -87,7 +87,7 @@
     background: #fff;
     padding: 1rem 1.25rem;
     border-radius: 8px;
-    max-width: 680px;
+    max-width: 300px;
     width: 100%;
     box-shadow: 0 6px 24px rgba(16,24,40,0.2);
   }
@@ -105,7 +105,8 @@
     padding:6px 8px; 
     border-radius:4px; 
     border:1px solid #d1d5db;
-    min-width: 200px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* Balance row inline points */
@@ -130,13 +131,13 @@
 
   .editor { margin-top: 1rem; }
   .form-row { 
-    display:flex; 
-    gap:1rem; 
-    align-items:center; 
+    display:block; 
     margin-bottom:1rem; 
     
     label { 
-      width:140px; 
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
       color: #4a5568;
     }
 
@@ -153,10 +154,11 @@
     }
 
     input[type="number"] {
-      padding: 6px 12px;
+      padding: 6px 8px;
       border: 1px solid #d1d5db;
       border-radius: 4px;
-      width: 200px;
+      width: 100%;
+      box-sizing: border-box;
 
       &:focus {
         outline: none;
@@ -166,28 +168,39 @@
     }
   }
 
-  /* compact triple row: start / end / pnl on one line */
-  .triple-row {
-    align-items: flex-start;
+  .pnl-display {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
   }
 
-  .triple-row .field {
-    display:flex;
-    flex-direction:column;
-    flex: 1 1 0;
-    min-width: 0; /* allow inputs to shrink in narrow containers */
-  }
-
-  .triple-row .field label {
-    width: auto;
+  .pnl-display label {
     margin-bottom: 6px;
+    font-weight: 500;
   }
 
-  .triple-row .field input[type="number"] {
-    width: 100%;
-    max-width: 260px;
+  .pnl-display .info-value {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
   }
-  
+
+  .pnl-display .info-value.positive {
+    color: #38a169;
+    background: #f0fff4;
+    border-color: #9ae6b4;
+  }
+
+  .pnl-display .info-value.negative {
+    color: #e53e3e;
+    background: #fed7d7;
+    border-color: #feb2b2;
+  }
+
   .message { 
     margin-top:0.5rem; 
     color: #fff; 
@@ -308,6 +321,10 @@
     font-weight: 600;
     color: #334155;
     background: #f8fafc;
+  }
+
+  .bold {
+    font-weight: bold;
   }
 
 }

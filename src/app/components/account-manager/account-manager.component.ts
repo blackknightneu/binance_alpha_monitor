@@ -2,15 +2,15 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AccountService } from '../../services/account.service';
+import { LanguageService, Language } from '../../services/language.service';
 import { Account, PointsRecord } from '../../models/account.model';
 import { FormsModule } from '@angular/forms';
-
-type Language = 'vi' | 'en';
 
 interface ColumnOption {
   id: string;
   labels: Record<Language, string>;
   visible: boolean;
+  width?: string;
 }
 
 interface TextBundle {
@@ -68,24 +68,26 @@ type TextKey = keyof TextBundle;
 export class AccountManagerComponent implements OnInit, OnDestroy {
   private readonly LOGIN_TIMEZONE_OFFSET = 7; // GMT+7
   private readonly COLUMN_STORAGE_KEY = 'account-manager-visible-columns';
-  private readonly LANGUAGE_STORAGE_KEY = 'account-manager-language';
   accounts: Account[] = [];
   selectedAccount: Account | null = null;
   sortColumn: string = 'name';
   sortDir: 'asc' | 'desc' = 'asc';
-  language: Language = 'vi';
+
+  get language(): Language {
+    return this.languageService.currentLanguage();
+  }
 
   private readonly translations: Record<Language, TextBundle> = {
     vi: {
       title: 'Quản lý tài khoản',
-      createAccount: 'Tạo tài khoản mới',
-      exportCsv: 'Xuất CSV',
+      createAccount: 'Tạo',
+            exportCsv: 'Xuất',
       exportCsvAria: 'Tải xuống CSV',
-      importCsv: 'Nhập CSV',
+            importCsv: 'Tải lên',
       importCsvAria: 'Tải lên CSV',
       localWarning: 'Dữ liệu chỉ lưu trên trình duyệt của bạn. Nếu muốn sử dụng ở trình duyệt hoặc máy khác, vui lòng export dữ liệu và import lại.',
-      columnSelectorButton: 'Chọn cột hiển thị',
-      columnSummaryTemplate: 'Đang hiển thị {current} / {total} cột',
+      columnSelectorButton: 'Chọn tùy chọn hiển thị',
+      columnSummaryTemplate: 'Đang hiển thị {current} / {total} tùy chọn',
       stt: 'STT',
       name: 'Tên',
       actions: 'Thao tác',
@@ -103,7 +105,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       riskModalDateLabel: 'Ngày bị risk',
       save: 'Lưu',
       remove: 'Xóa',
-      columnModalTitle: 'Chọn cột hiển thị',
+      columnModalTitle: 'Chọn tùy chọn hiển thị',
       renameModalTitle: 'Đổi tên tài khoản',
       renameModalSubtitle: 'Tài khoản hiện tại:',
       renameModalInput: 'Tên mới',
@@ -120,14 +122,14 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     },
     en: {
       title: 'Account Management',
-      createAccount: 'Create new account',
-      exportCsv: 'Export CSV',
-      exportCsvAria: 'Download CSV',
-      importCsv: 'Import CSV',
-      importCsvAria: 'Upload CSV',
+      createAccount: 'New',
+      exportCsv: 'Export',
+      exportCsvAria: 'Download',
+      importCsv: 'Import',
+      importCsvAria: 'Upload',
       localWarning: 'Data is stored only in your browser. To use it on another browser or device, please export it and then import again.',
-      columnSelectorButton: 'Select visible columns',
-      columnSummaryTemplate: 'Showing {current} / {total} columns',
+      columnSelectorButton: 'Select visible options',
+      columnSummaryTemplate: 'Showing {current} / {total} options',
       stt: 'No.',
       name: 'Name',
       actions: 'Actions',
@@ -145,7 +147,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       riskModalDateLabel: 'Risk date',
       save: 'Save',
       remove: 'Remove',
-      columnModalTitle: 'Select visible columns',
+      columnModalTitle: 'Select visible options',
       renameModalTitle: 'Rename account',
       renameModalSubtitle: 'Current account:',
       renameModalInput: 'New name',
@@ -166,34 +168,38 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     {
       id: 'todayStartBalance',
       labels: {
-        vi: 'Số dư đầu ngày hôm nay',
-        en: "Today's opening balance"
+        vi: 'Số dư đầu ngày',
+        en: "Start balance"
       },
-      visible: false
+      visible: true,
+      width: '120px'
     },
     {
-      id: 'todayCost',
+      id: 'todayPnL',
       labels: {
-        vi: 'Chi phí hôm nay',
-        en: "Today's cost"
+        vi: 'Lãi/Lỗ trong ngày',
+        en: "PnL (today)"
       },
-      visible: true
+      visible: true,
+      width: '100px'
     },
     {
       id: 'todayBalancePoints',
       labels: {
         vi: 'Điểm số dư hôm nay',
-        en: "Today's balance points"
+        en: "Balance points"
       },
-      visible: false
+      visible: false,
+      width: '120px'
     },
     {
       id: 'todayEndBalance',
       labels: {
-        vi: 'Số dư cuối ngày hôm nay',
-        en: "Today's closing balance"
+        vi: 'Số dư cuối ngày',
+        en: "End balance"
       },
-      visible: true
+      visible: true,
+      width: '120px'
     },
     {
       id: 'todayVolumePoints',
@@ -201,31 +207,35 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
         vi: 'Điểm volume hôm nay',
         en: "Today's volume points"
       },
-      visible: false
+      visible: false,
+      width: '120px'
     },
     {
       id: 'todayVolume',
       labels: {
-        vi: 'Volume hôm nay',
-        en: "Today's volume"
+        vi: 'Khối lượng (USD)',
+        en: "Volume (USD)"
       },
-      visible: true
+      visible: true,
+      width: '120px'
     },
     {
       id: 'todayTotalPoints',
       labels: {
-        vi: 'Điểm hôm nay (D-15->D-1)',
-        en: 'Points today (D-15->D-1)'
+        vi: 'Điểm hôm nay',
+        en: 'Points today'
       },
-      visible: true
+      visible: true,
+      width: '120px'
     },
     {
       id: 'tomorrowPoints',
       labels: {
-        vi: 'Điểm ngày mai (D-14->D)',
-        en: 'Points tomorrow (D-14->D)'
+        vi: 'Điểm ngày mai',
+        en: 'Points tomorrow'
       },
-      visible: true
+      visible: true,
+      width: '120px'
     },
     {
       id: 'riskDate',
@@ -233,21 +243,56 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
         vi: 'Ngày bị risk (ngày)',
         en: 'Risk date (days)'
       },
-      visible: false
+      visible: false,
+      width: '150px'
     },
     {
       id: 'logoutCountdown',
       labels: {
         vi: 'Thời gian logout',
-        en: 'Logout countdown'
+        en: 'Logout'
       },
-      visible: true
+      visible: true,
+      width: '150px'
     },
     {
       id: 'totalPnL',
       labels: {
         vi: 'Tổng PnL từ trước',
-        en: 'Total historical PnL'
+        en: 'Total PnL'
+      },
+      visible: true,
+      width: '120px'
+    },
+    {
+      id: 'showRenameButton',
+      labels: {
+        vi: 'Thao tác: Hiện nút Đổi tên',
+        en: 'Actions: Show Rename button'
+      },
+      visible: true
+    },
+    {
+      id: 'showRiskButton',
+      labels: {
+        vi: 'Thao tác: Hiện nút Ghi nhận risk',
+        en: 'Actions: Show Record Risk button'
+      },
+      visible: true
+    },
+    {
+      id: 'showLoginButton',
+      labels: {
+        vi: 'Thao tác: Hiện nút Ghi nhận login',
+        en: 'Actions: Show Record Login button'
+      },
+      visible: true
+    },
+    {
+      id: 'showDeleteButton',
+      labels: {
+        vi: 'Thao tác: Hiện nút Xóa tài khoản',
+        en: 'Actions: Show Delete Account button'
       },
       visible: true
     }
@@ -274,6 +319,17 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
 
   getVisibleColumnCount(): number {
     return this.columnOptions.filter(option => option.visible).length;
+  }
+
+  getColumnVisibility(columnId: string): boolean {
+    return this.columnOptions.find(option => option.id === columnId)?.visible ?? true;
+  }
+
+  isAnyActionVisible(): boolean {
+    return this.getColumnVisibility('showRenameButton') ||
+           this.getColumnVisibility('showRiskButton') ||
+           this.getColumnVisibility('showLoginButton') ||
+           this.getColumnVisibility('showDeleteButton');
   }
 
   openColumnSelector(): void {
@@ -328,30 +384,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   }
 
   toggleLanguage(): void {
-    const nextLanguage: Language = this.language === 'vi' ? 'en' : 'vi';
-    this.setLanguage(nextLanguage);
-  }
-
-  private setLanguage(language: Language): void {
-    this.language = language;
-    this.saveLanguage();
-  }
-
-  private loadLanguage(): void {
-    if (typeof window === 'undefined' || !window.localStorage) {
-      return;
-    }
-    const stored = window.localStorage.getItem(this.LANGUAGE_STORAGE_KEY);
-    if (stored === 'vi' || stored === 'en') {
-      this.language = stored;
-    }
-  }
-
-  private saveLanguage(): void {
-    if (typeof window === 'undefined' || !window.localStorage) {
-      return;
-    }
-    window.localStorage.setItem(this.LANGUAGE_STORAGE_KEY, this.language);
+    this.languageService.toggleLanguage();
   }
 
   private loadColumnVisibility(): void {
@@ -388,7 +421,10 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     if (!account || !account.pointsHistory) return null;
     const todayUTC = new Date();
     todayUTC.setUTCHours(0, 0, 0, 0);
-    return this.getOrCreateRecord(account, todayUTC) ?? null;
+    return account.pointsHistory.find(r => {
+      const rDate = new Date(Date.UTC(r.date.getUTCFullYear(), r.date.getUTCMonth(), r.date.getUTCDate()));
+      return rDate.getTime() === todayUTC.getTime();
+    }) || null;
   }
 
   // Returns true if account has no input volume trade
@@ -406,10 +442,9 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     }) || !todayRecord || todayRecord.volume === 0;
   }
 
-  constructor(public accountService: AccountService) {}
+  constructor(public accountService: AccountService, private languageService: LanguageService) {}
 
   ngOnInit(): void {
-    this.loadLanguage();
     this.loadColumnVisibility();
     this.accountService.getAccounts().subscribe(accounts => {
       this.accounts = accounts;
@@ -446,8 +481,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
           return a.name.localeCompare(b.name) * dir;
         case 'todayStartBalance':
           return (this.getTodayStartBalance(a) - this.getTodayStartBalance(b)) * dir;
-        case 'todayCost':
-          return (this.getTodayCost(a) - this.getTodayCost(b)) * dir;
+        case 'todayPnL':
+          return (this.getTodayPnL(a) - this.getTodayPnL(b)) * dir;
         case 'todayBalancePoints':
           return (this.getTodayBalancePoints(a) - this.getTodayBalancePoints(b)) * dir;
         case 'todayEndBalance':
@@ -547,9 +582,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
         balancePoints: prevRecord.balancePoints ?? 0,
         totalPoints: 0,
         profit: 0,
-        modified: false,
-        deductedPoints: 0,
-        bonusPoints: 0
+        deductedPoints: 0
       };
     }
     // Nếu không có ngày trước đó, trả về mặc định theo yêu cầu
@@ -563,19 +596,15 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       balancePoints: 0,
       totalPoints: 0,
       profit: 0,
-      modified: false,
-      deductedPoints: 0,
-      bonusPoints: 0
+      deductedPoints: 0
     };
   }
 
   // Sử dụng cho các trường hợp cần lấy dữ liệu ngày hôm nay
   getTodayTradeVolume(account: Account): number {
     if (!account || !account.pointsHistory) return 0;
-    const todayUTC = new Date();
-    todayUTC.setUTCHours(0,0,0,0);
-    const todayRecord = this.getOrCreateRecord(account, todayUTC);
-    return todayRecord?.volume ?? 0;
+    const todayRecord = this.getTodayRecord(account);
+    return todayRecord ? todayRecord.volume : 0;
   }
   getTodayVolumePoints(account: Account): number {
     return this.getTodayRecord(account)?.volumePoints ?? 0;
@@ -601,21 +630,20 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     return this.getTodayRecord(account)?.endBalance ?? this.getLatestEndBalance(account);
   }
 
-  getTodayCost(account: Account): number {
+  getTodayPnL(account: Account): number {
     const todayRecord = this.getTodayRecord(account);
     if (!todayRecord) return 0;
     const start = todayRecord.startBalance ?? 0;
     const end = todayRecord.endBalance ?? todayRecord.balance ?? 0;
-    return start - end;
+    const profit = 0;//todayRecord.profit ?? 0;
+    return (end - start) + profit;
   }
 
   getTotalPnL(account: Account): number {
     if (!account || !account.pointsHistory) return 0;
     return account.pointsHistory.reduce((sum, record) => {
-      const start = record.startBalance ?? 0;
-      const end = record.endBalance ?? record.balance ?? 0;
       const profit = record.profit ?? 0;
-      return sum + (start - end) + profit;
+      return sum +  profit;
     }, 0);
   }
 

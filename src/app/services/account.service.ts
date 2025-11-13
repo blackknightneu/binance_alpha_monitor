@@ -103,7 +103,7 @@ export class AccountService {
     this.saveAccounts();
   }
 
-  updateAccountPoints(accountId: string, startBalance: number, endBalance: number, volume: number, balance = 0, bonusPoints = 0, profit = 0, deductedPoints = 0): void {
+  updateAccountPoints(accountId: string, startBalance: number, endBalance: number, volume: number, balance = 0, profit = 0, deductedPoints = 0): void {
     const account = this.accounts.find(acc => acc.id === accountId);
     if (!account) return;
 
@@ -118,11 +118,9 @@ export class AccountService {
       balance,
       balancePoints,
       volumePoints,
-      bonusPoints,
-      // compute total including bonus and subtract deductions
-      totalPoints: balancePoints + volumePoints + (bonusPoints || 0) - (deductedPoints || 0),
-      volume,
-      modified: false
+      // compute total and subtract deductions
+      totalPoints: balancePoints + volumePoints - (deductedPoints || 0),
+      volume
     };
 
     account.balance = endBalance; // Update account balance to end of day balance
@@ -169,7 +167,7 @@ export class AccountService {
   /**
    * Set or update a daily record for a specific date. This allows the calendar to save entries
    */
-  setRecordForDate(accountId: string, date: Date, startBalance: number, endBalance: number, volume: number, balance: number = 0, profit: number = 0, deductedPoints: number = 0, bonusPoints: number = 0): void {
+  setRecordForDate(accountId: string, date: Date, startBalance: number, endBalance: number, volume: number, balance: number = 0, profit: number = 0, deductedPoints: number = 0): void {
     const account = this.accounts.find(acc => acc.id === accountId);
     if (!account) return;
 
@@ -188,12 +186,10 @@ export class AccountService {
       existing.volume = volume;
       existing.profit = profit;
       existing.deductedPoints = deductedPoints;
-      existing.bonusPoints = bonusPoints;
       existing.balance = balance;
       existing.balancePoints = balancePoints;
       existing.volumePoints = volumePoints;
-      existing.totalPoints = balancePoints + volumePoints + (bonusPoints || 0) - (deductedPoints || 0);
-      existing.modified = true;
+      existing.totalPoints = balancePoints + volumePoints - (deductedPoints || 0);
     } else {
       const newRecord: PointsRecord = {
         date: utcDate, // use UTC normalized date
@@ -202,10 +198,8 @@ export class AccountService {
         balance,
         balancePoints,
         volumePoints,
-        bonusPoints,
-        totalPoints: balancePoints + volumePoints + (bonusPoints || 0) - (deductedPoints || 0),
+        totalPoints: balancePoints + volumePoints - (deductedPoints || 0),
         volume,
-        modified: false,
         profit,
         deductedPoints
       };
@@ -323,8 +317,7 @@ export class AccountService {
           this.numOrEmpty(r.volume),
           this.numOrEmpty(r.volumePoints),
           this.numOrEmpty(r.profit ?? 0),
-          this.numOrEmpty(r.deductedPoints ?? 0),
-          this.numOrEmpty(r.bonusPoints ?? 0)
+          this.numOrEmpty(r.deductedPoints ?? 0)
         ];
         rows.push(cols.join(','));
       }
@@ -356,8 +349,7 @@ export class AccountService {
         this.numOrEmpty(r.volume),
         this.numOrEmpty(r.volumePoints),
         this.numOrEmpty(r.profit ?? 0),
-        this.numOrEmpty(r.deductedPoints ?? 0),
-        this.numOrEmpty(r.bonusPoints ?? 0)
+        this.numOrEmpty(r.deductedPoints ?? 0)
       ];
       rows.push(cols.join(','));
     }
@@ -511,7 +503,6 @@ export class AccountService {
       ['balancepoints', ['balance_points', 'balancepoint']],
       ['volumepoints', ['volume_points', 'volumepoint', 'volpoints']],
       ['deducted', ['deductedpoints', 'deducted_points']],
-      ['bonus', ['bonuspoints', 'bonus_points']],
   ['lastlogin', ['last_login']],
       ['logoutdeadline', ['logout', 'logout_deadline']],
       ['riskdate', ['risk', 'risk_date']]
@@ -595,7 +586,6 @@ export class AccountService {
         const volumePointsStr = getValue(null, 'volumepoints', 'volume_points', 'volpoints');
         const profitStr = getValue(5, 'profit');
         const deductedStr = getValue(6, 'deducted', 'deductedpoints', 'deducted_points');
-        const bonusStr = getValue(null, 'bonus', 'bonuspoints', 'bonus_points');
   const lastLoginStr = getValue(null, 'lastlogin', 'last_login');
   const riskDateStr = getValue(null, 'riskdate', 'risk', 'risk_date');
   const logoutDeadlineStr = getValue(null, 'logoutdeadline', 'logout', 'logout_deadline');
@@ -611,7 +601,6 @@ export class AccountService {
           volumePointsStr,
           profitStr,
           deductedStr,
-          bonusStr,
           lastLoginStr,
           riskDateStr,
           logoutDeadlineStr
@@ -636,7 +625,6 @@ export class AccountService {
   const balance = parseNumber(balanceStr) ?? end;
   const balancePointsValue = parseNumber(balancePointsStr);
   const volumePointsValue = parseNumber(volumePointsStr);
-  const bonusValue = parseNumber(bonusStr);
 
         const riskDateValue = riskDateStr ? this.parseDateOnlyString(riskDateStr) : null;
         if (riskDateStr && !riskDateValue) {
@@ -663,7 +651,6 @@ export class AccountService {
           balance,
           balancePointsValue,
           volumePointsValue,
-          bonusValue,
           lastLoginValue,
           riskDateValue,
           logoutDeadlineValue
@@ -712,7 +699,7 @@ export class AccountService {
         }
 
     // set record (this will compute points properly, overrides applied below)
-    this.setRecordForDate(account.id, date, start, end, volume, balance, profit, deducted, bonusValue ?? 0);
+    this.setRecordForDate(account.id, date, start, end, volume, balance, profit, deducted);
 
         const record = this.getRecordForDate(account.id, date);
         if (record) {
@@ -728,10 +715,7 @@ export class AccountService {
           if (volumePointsValue !== null) {
             record.volumePoints = volumePointsValue;
           }
-          if (bonusValue !== null) {
-            record.bonusPoints = bonusValue;
-          }
-          record.totalPoints = (record.balancePoints || 0) + (record.volumePoints || 0) + (record.bonusPoints || 0) - (record.deductedPoints || 0);
+          record.totalPoints = (record.balancePoints || 0) + (record.volumePoints || 0) - (record.deductedPoints || 0);
         }
         imported++;
         console.log('Record imported successfully');
@@ -825,7 +809,6 @@ export class AccountService {
       record.endBalance = endBalance;
       record.balancePoints = balancePoints;
       record.totalPoints = balancePoints + record.volumePoints;
-      record.modified = true;
 
       // Update account balance if it's today's record
       if (new Date().toDateString() === date.toDateString()) {

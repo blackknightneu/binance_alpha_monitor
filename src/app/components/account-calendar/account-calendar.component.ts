@@ -2,8 +2,19 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountService } from '../../services/account.service';
+import { LanguageService, Language } from '../../services/language.service';
 import { Account, PointsRecord } from '../../models/account.model';
 import { GroupByMonthPipe } from '../../pipes/group-by-month.pipe';
+
+interface TextBundle {
+  calendarTitle: string;
+  recentRecords: string;
+  editTitle: string;
+  savedMessage: string;
+  noRecords: string;
+  selectAccountMessage: string;
+  invalidValuesMessage: string;
+}
 
 interface CalendarDay {
   date: Date;
@@ -39,7 +50,6 @@ export class AccountCalendarComponent implements OnInit {
   volume = 0;
   profit = 0;           // daily profit collected
   deductedPoints = 0;   // manual point deductions for the day
-  bonusPoints = 0;
   
   // Points calculation fields
   calculatedBalancePoints = 0;
@@ -54,13 +64,38 @@ export class AccountCalendarComponent implements OnInit {
 
   recentRecords: PointsRecord[] = [];
 
+  get language(): Language {
+    return this.languageService.currentLanguage();
+  }
+  private readonly translations: Record<Language, TextBundle> = {
+    vi: {
+      calendarTitle: 'Lịch giao dịch',
+      recentRecords: 'Bản ghi gần đây',
+      editTitle: 'Chỉnh sửa',
+      savedMessage: 'Đã lưu',
+      noRecords: 'Hiện chưa có bản ghi nào',
+      selectAccountMessage: 'Vui lòng chọn tài khoản trước',
+      invalidValuesMessage: 'Vui lòng nhập giá trị không âm'
+    },
+    en: {
+      calendarTitle: 'Trading Calendar',
+      recentRecords: 'Recent Records',
+      editTitle: 'Edit',
+      savedMessage: 'Saved',
+      noRecords: 'No records yet',
+      selectAccountMessage: 'Please select an account first',
+      invalidValuesMessage: 'Please enter non-negative values'
+    }
+  };
+  t = (key: keyof TextBundle) => this.translations[this.language][key];
+
   // UI helpers
   showCustomInput = false;
   // simple inline message for UX (toast-like)
   message = '';
   messageTimeout: any = null;
 
-  constructor(private accountService: AccountService) {}
+  constructor(private accountService: AccountService, private languageService: LanguageService) {}
 
   ngOnInit(): void {
     this.accountService.getSelectedAccount().subscribe(acc => {
@@ -203,7 +238,6 @@ export class AccountCalendarComponent implements OnInit {
       this.volume = rec.volume;
       this.profit = rec.profit ?? 0;
       this.deductedPoints = rec.deductedPoints ?? 0;
-      this.bonusPoints = rec.bonusPoints ?? 0;
       this.updateBalancePoints();
       this.updateVolumePoints();
       this.updateProfitLoss();
@@ -222,7 +256,6 @@ export class AccountCalendarComponent implements OnInit {
       this.startBalance = newStartBalance;
       this.endBalance = 0;
       this.volume = latestVolume;
-      this.bonusPoints = 0;
       this.profit = 0;
       this.deductedPoints = 0;
       this.updateBalancePoints();
@@ -272,10 +305,10 @@ export class AccountCalendarComponent implements OnInit {
   }
 
   saveForDate(): void {
-    if (!this.selectedAccount) { this.showMessage('Vui lòng chọn tài khoản trước'); return; }
+    if (!this.selectedAccount) { this.showMessage(this.t('selectAccountMessage')); return; }
     // validation
     if (this.startBalance < 0 || this.endBalance < 0 || this.volume < 0) {
-      this.showMessage('Vui lòng nhập giá trị không âm');
+      this.showMessage(this.t('invalidValuesMessage'));
       return;
     }
 
@@ -288,12 +321,11 @@ export class AccountCalendarComponent implements OnInit {
       this.volume,
       this.balance, // balance for points calculation
       this.profit,
-      this.deductedPoints,
-      this.bonusPoints
+      this.deductedPoints
     );
     this.buildCalendar();
     this.loadRecent();
-  this.showMessage('Đã lưu');
+    this.showMessage(this.t('savedMessage'));
     // close the editor modal after saving
     this.editorVisible = false;
   }
@@ -304,10 +336,9 @@ export class AccountCalendarComponent implements OnInit {
       return;
     }
     
-    // Sort by date descending and take latest 16 days
+    // Sort by date descending
     this.recentRecords = [...this.selectedAccount.pointsHistory]
-      .sort((a, b) => b.date.getTime() - a.date.getTime())
-      .slice(0, 16);
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
   }
 
   private getLatestRecord(account: Account): PointsRecord | null {

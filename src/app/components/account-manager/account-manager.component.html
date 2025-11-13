@@ -4,23 +4,24 @@
     <div class="actions">
       <button routerLink="/create-account" class="btn-primary btn-with-icon btn-new" [attr.aria-label]="t('createAccount')">
         <span class="btn-icon">+</span>
-        <span class="sr-only">{{ t('createAccount') }}</span>
+        <span>{{ t('createAccount') }}</span>
       </button>
-      <button (click)="exportData()" class="btn-ghost btn-with-icon btn-export" [attr.aria-label]="t('exportCsvAria')">
+      <button (click)="exportData()" class="btn-ghost btn-pill btn-export" [attr.aria-label]="t('exportCsvAria')">
         <span class="btn-icon">⇩</span>
         <span>{{ t('exportCsv') }}</span>
       </button>
-      <label class="btn-ghost import-btn btn-with-icon" [attr.aria-label]="t('importCsvAria')">
+      <label class="btn-ghost btn-pill import-btn" [attr.aria-label]="t('importCsvAria')">
         <span class="btn-icon">⇪</span>
         <span>{{ t('importCsv') }}</span>
         <input type="file" accept=".csv" (change)="importData($event)" hidden>
       </label>
-      <button class="btn-ghost btn-with-icon btn-language" (click)="toggleLanguage()" [attr.aria-label]="getLanguageToggleAriaLabel()">
-        <span class="btn-icon">🌐</span>
-        <span>{{ getLanguageToggleLabel() }}</span>
-      </button>
     </div>
   </div>
+
+  <button class="btn-language-floating" (click)="toggleLanguage()" [attr.aria-label]="getLanguageToggleAriaLabel()">
+    <span class="btn-icon">🌐</span>
+    <span>{{ getLanguageToggleLabel() }}</span>
+  </button>
 
   <p class="local-warning">{{ t('localWarning') }}</p>
 
@@ -37,16 +38,17 @@
       <thead>
         <tr>
           <th (click)="sortBy('stt')">{{ t('stt') }} <span class="sort-indicator" *ngIf="sortColumn==='stt'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
-          <th (click)="sortBy('name')">{{ t('name') }} <span class="sort-indicator" *ngIf="sortColumn==='name'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th class="col-name" (click)="sortBy('name')">{{ t('name') }} <span class="sort-indicator" *ngIf="sortColumn==='name'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
           <ng-container *ngFor="let option of columnOptions; trackBy: trackColumnOption">
-            <th *ngIf="option.visible"
+            <th *ngIf="option.visible && !option.id.startsWith('show')"
                 (click)="sortBy(option.id)"
-                [class.col-numeric]="option.id !== 'logoutCountdown' && option.id !== 'riskDate'">
+                [class.col-numeric]="option.id !== 'logoutCountdown' && option.id !== 'riskDate'"
+                [style.width]="option.width">
               {{ getColumnLabel(option) }}
               <span class="sort-indicator" *ngIf="sortColumn===option.id">{{ sortDir==='asc'?'▲':'▼' }}</span>
             </th>
           </ng-container>
-          <th>{{ t('actions') }}</th>
+          <th *ngIf="isAnyActionVisible()" class="col-actions">{{ t('actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -57,22 +59,23 @@
           <td class="col-stt">{{ i + 1 }}</td>
           <td class="col-name">{{ account.name }}</td>
           <ng-container *ngFor="let option of columnOptions; trackBy: trackColumnOption">
-            <td *ngIf="option.visible"
+            <td *ngIf="option.visible && !option.id.startsWith('show')"
                 [class.col-numeric]="option.id !== 'logoutCountdown' && option.id !== 'riskDate'"
+                [style.width]="option.width"
                 [ngSwitch]="option.id">
               <ng-container *ngSwitchCase="'todayStartBalance'">
                 {{ getTodayStartBalance(account) | number:'1.0-0' }}
               </ng-container>
-              <ng-container *ngSwitchCase="'todayCost'">
-                <span [ngClass]="{ 'positive': getTodayCost(account) < 0, 'negative': getTodayCost(account) > 0 }">
-                  {{ getTodayCost(account) | number:'1.1-1' }}
+              <ng-container *ngSwitchCase="'todayPnL'">
+                <span [ngClass]="{ 'positive': getTodayPnL(account) > 0, 'negative': getTodayPnL(account) < 0 }">
+                  {{ getTodayPnL(account) | number:'1.1-1' }}
                 </span>
               </ng-container>
               <ng-container *ngSwitchCase="'todayBalancePoints'">
                 {{ getTodayBalancePoints(account) | number:'1.0-0' }}
               </ng-container>
               <ng-container *ngSwitchCase="'todayEndBalance'">
-                {{ getTodayEndBalance(account) | number:'1.0-0' }}
+                {{ getTodayEndBalance(account) | number:'1.0-1' }}
               </ng-container>
               <ng-container *ngSwitchCase="'todayVolumePoints'">
                 {{ getTodayVolumePoints(account) | number:'1.0-0' }}
@@ -99,21 +102,21 @@
               </ng-container>
             </td>
           </ng-container>
-          <td class="col-actions">
+          <td *ngIf="isAnyActionVisible()" class="col-actions">
             <div class="action-buttons">
-              <button class="btn-secondary btn-with-icon btn-rename" (click)="openRenameModal(account); $event.stopPropagation()" [attr.aria-label]="t('rename')">
+              <button *ngIf="getColumnVisibility('showRenameButton')" class="btn-secondary btn-with-icon btn-rename" (click)="openRenameModal(account); $event.stopPropagation()" [attr.aria-label]="t('rename')">
                 <span class="btn-icon">✎</span>
                 <span class="sr-only">{{ t('rename') }}</span>
               </button>
-              <button class="btn-secondary btn-with-icon btn-risk" (click)="openRiskModal(account); $event.stopPropagation()" [attr.aria-label]="t('risk')">
+              <button *ngIf="getColumnVisibility('showRiskButton')" class="btn-secondary btn-with-icon btn-risk" (click)="openRiskModal(account); $event.stopPropagation()" [attr.aria-label]="t('risk')">
                 <span class="btn-icon">⚠</span>
                 <span class="sr-only">{{ t('risk') }}</span>
               </button>
-              <button class="btn-secondary btn-with-icon btn-login" (click)="openLoginModal(account); $event.stopPropagation()" [attr.aria-label]="t('login')">
+              <button *ngIf="getColumnVisibility('showLoginButton')" class="btn-secondary btn-with-icon btn-login" (click)="openLoginModal(account); $event.stopPropagation()" [attr.aria-label]="t('login')">
                 <span class="btn-icon">🕒</span>
                 <span class="sr-only">{{ t('login') }}</span>
               </button>
-              <button class="btn-danger btn-with-icon btn-delete-one" (click)="deleteAccount(account.id); $event.stopPropagation()" [attr.aria-label]="t('delete')">
+              <button *ngIf="getColumnVisibility('showDeleteButton')" class="btn-danger btn-with-icon btn-delete-one" (click)="deleteAccount(account.id); $event.stopPropagation()" [attr.aria-label]="t('delete')">
                 <span class="btn-icon">🗑</span>
                 <span class="sr-only">{{ t('delete') }}</span>
               </button>
