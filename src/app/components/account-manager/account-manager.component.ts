@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AccountService } from '../../services/account.service';
 import { LanguageService, Language } from '../../services/language.service';
-import { Account, PointsRecord } from '../../models/account.model';
+import { CustomFieldsService } from '../../services/custom-fields.service';
+import { Account, PointsRecord, CustomFieldDefinition } from '../../models/account.model';
 import { FormsModule } from '@angular/forms';
 
 interface ColumnOption {
@@ -50,6 +51,16 @@ interface TextBundle {
   confirmDeleteAccount: string;
   riskDateRequired: string;
   riskDateInvalid: string;
+  customManageFields: string;
+  customAddNewField: string;
+  customFieldName: string;
+  customFieldType: string;
+  customTextType: string;
+  customBooleanType: string;
+  customAddField: string;
+  customNoFieldsDefined: string;
+  customEditInfo: string;
+  customSave: string;
   languageEnglish: string;
   languageVietnamese: string;
   switchToEnglish: string;
@@ -76,6 +87,17 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   get language(): Language {
     return this.languageService.currentLanguage();
   }
+
+  // Custom Fields
+  customFields: CustomFieldDefinition[] = [];
+  showCustomFieldsModal = false;
+  showAddFieldModal = false;
+  newFieldName = '';
+  newFieldType: 'text' | 'boolean' = 'text';
+  editingField: CustomFieldDefinition | null = null;
+  showEditCustomFieldsModal = false;
+  editAccount: Account | null = null;
+  customFieldValues: Record<string, any> = {};
 
   private readonly translations: Record<Language, TextBundle> = {
     vi: {
@@ -109,7 +131,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       renameModalTitle: 'Đổi tên tài khoản',
       renameModalSubtitle: 'Tài khoản hiện tại:',
       renameModalInput: 'Tên mới',
-      riskNotSet: 'Chưa risk',
+      riskNotSet: '',
       daysSuffix: 'ngày',
       logoutExpired: 'Đã logout',
       confirmDeleteAccount: 'Bạn có chắc chắn muốn xóa tài khoản này?',
@@ -118,7 +140,17 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       languageEnglish: 'English',
       languageVietnamese: 'Tiếng Việt',
   switchToEnglish: 'Chuyển sang tiếng Anh',
-  switchToVietnamese: 'Chuyển sang tiếng Việt'
+  switchToVietnamese: 'Chuyển sang tiếng Việt',
+      customManageFields: 'Quản lý thông tin thêm',
+      customAddNewField: 'Thêm trường mới',
+      customFieldName: 'Tên trường',
+      customFieldType: 'Loại',
+      customTextType: 'Văn bản',
+      customBooleanType: 'Có/Không',
+      customAddField: 'Thêm',
+      customNoFieldsDefined: 'Chưa có trường thông tin nào',
+      customEditInfo: 'Chỉnh sửa thông tin thêm',
+      customSave: 'Lưu'
     },
     en: {
       title: 'Account Management',
@@ -160,7 +192,17 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       languageEnglish: 'English',
       languageVietnamese: 'Vietnamese',
   switchToEnglish: 'Switch to English',
-  switchToVietnamese: 'Switch to Vietnamese'
+  switchToVietnamese: 'Switch to Vietnamese',
+      customManageFields: 'Manage Additional Information',
+      customAddNewField: 'Add New Field',
+      customFieldName: 'Field Name',
+      customFieldType: 'Type',
+      customTextType: 'Text',
+      customBooleanType: 'Yes/No',
+      customAddField: 'Add',
+      customNoFieldsDefined: 'No fields defined yet',
+      customEditInfo: 'Edit Additional Information',
+      customSave: 'Save'
     }
   };
 
@@ -182,6 +224,15 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       },
       visible: true,
       width: '100px'
+    },
+    {
+      id: 'todayProfit',
+      labels: {
+        vi: 'Lợi nhuận hôm nay',
+        en: "Today's profit"
+      },
+      visible: true,
+      width: '120px'
     },
     {
       id: 'todayBalancePoints',
@@ -442,7 +493,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     }) || !todayRecord || todayRecord.volume === 0;
   }
 
-  constructor(public accountService: AccountService, private languageService: LanguageService) {}
+  constructor(public accountService: AccountService, private languageService: LanguageService, private customFieldsService: CustomFieldsService) {}
 
   ngOnInit(): void {
     this.loadColumnVisibility();
@@ -453,7 +504,119 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     this.accountService.getSelectedAccount().subscribe(account => {
       this.selectedAccount = account;
     });
+
+    // Load custom fields
+    this.customFieldsService.customFields$.subscribe(fields => {
+      this.customFields = fields;
+      this.updateColumnOptionsForCustomFields();
+    });
+
     // Xóa interval cập nhật countdown logout
+  }
+
+  // Custom Fields Management
+  openCustomFieldsModal(): void {
+    this.showCustomFieldsModal = true;
+  }
+
+  closeCustomFieldsModal(): void {
+    this.showCustomFieldsModal = false;
+  }
+
+  openAddFieldModal(): void {
+    this.newFieldName = '';
+    this.newFieldType = 'text';
+    this.showAddFieldModal = true;
+  }
+
+  closeAddFieldModal(): void {
+    this.showAddFieldModal = false;
+    this.newFieldName = '';
+    this.newFieldType = 'text';
+  }
+
+  addCustomField(): void {
+    if (!this.newFieldName.trim()) {
+      alert('Tên trường không được để trống');
+      return;
+    }
+
+    this.customFieldsService.addCustomField({
+      name: this.newFieldName.trim(),
+      type: this.newFieldType
+    });
+
+    this.closeAddFieldModal();
+  }
+
+  editCustomField(field: CustomFieldDefinition): void {
+    this.editingField = { ...field };
+    // TODO: Implement edit modal
+  }
+
+  deleteCustomField(fieldId: string): void {
+    if (confirm('Bạn có chắc chắn muốn xóa trường này?')) {
+      this.customFieldsService.deleteCustomField(fieldId);
+    }
+  }
+
+  openEditCustomFieldsModal(account: Account): void {
+    this.editAccount = account;
+    this.customFieldValues = { ...(account.customFields || {}) };
+    this.showEditCustomFieldsModal = true;
+  }
+
+  closeEditCustomFieldsModal(): void {
+    this.showEditCustomFieldsModal = false;
+    this.editAccount = null;
+    this.customFieldValues = {};
+  }
+
+  saveCustomFieldValues(): void {
+    if (!this.editAccount) return;
+
+    const updatedAccount = {
+      ...this.editAccount,
+      customFields: { ...this.customFieldValues },
+      lastUpdated: new Date()
+    };
+
+    this.accountService.updateAccount(updatedAccount);
+    this.closeEditCustomFieldsModal();
+  }
+
+  getCustomFieldValue(account: Account, fieldId: string): any {
+    return account.customFields?.[fieldId] ?? '';
+  }
+
+  getFieldDefinition(columnId: string): CustomFieldDefinition | undefined {
+    if (!columnId.startsWith('custom_')) return undefined;
+    const fieldId = columnId.replace('custom_', '');
+    return this.customFields.find(field => field.id === fieldId);
+  }
+
+  private updateColumnOptionsForCustomFields(): void {
+    // Remove existing custom field columns
+    this.columnOptions = this.columnOptions.filter(option => !option.id.startsWith('custom_'));
+
+    // Add new custom field columns
+    const customFieldColumns: ColumnOption[] = this.customFields.map(field => ({
+      id: `custom_${field.id}`,
+      labels: {
+        vi: field.name,
+        en: field.name
+      },
+      visible: true,
+      width: '120px'
+    }));
+
+    // Insert custom field columns before action columns
+    const actionColumnIndex = this.columnOptions.findIndex(option => option.id.startsWith('show'));
+    if (actionColumnIndex !== -1) {
+      this.columnOptions.splice(actionColumnIndex, 0, ...customFieldColumns);
+    } else {
+      this.columnOptions.push(...customFieldColumns);
+    }
   }
 
   ngOnDestroy(): void {
@@ -483,6 +646,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
           return (this.getTodayStartBalance(a) - this.getTodayStartBalance(b)) * dir;
         case 'todayPnL':
           return (this.getTodayPnL(a) - this.getTodayPnL(b)) * dir;
+        case 'todayProfit':
+          return (this.getTodayProfit(a) - this.getTodayProfit(b)) * dir;
         case 'todayBalancePoints':
           return (this.getTodayBalancePoints(a) - this.getTodayBalancePoints(b)) * dir;
         case 'todayEndBalance':
@@ -509,6 +674,21 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
           const msB = b.lastLogin ? (new Date(b.lastLogin).getTime() + 5*24*60*60*1000 - new Date().getTime()) : -Infinity;
           return (msA - msB) * dir;
         default:
+          // Handle custom fields sorting
+          if (this.sortColumn.startsWith('custom_')) {
+            const fieldDef = this.getFieldDefinition(this.sortColumn);
+            if (fieldDef) {
+              const aValue = this.getCustomFieldValue(a, fieldDef.id);
+              const bValue = this.getCustomFieldValue(b, fieldDef.id);
+
+              if (fieldDef.type === 'boolean') {
+                return (aValue ? 1 : 0) - (bValue ? 1 : 0) * dir;
+              } else {
+                // Text sorting
+                return String(aValue || '').localeCompare(String(bValue || '')) * dir;
+              }
+            }
+          }
           return 0;
       }
     });
@@ -639,11 +819,19 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     return (end - start) + profit;
   }
 
+  getTodayProfit(account: Account): number {
+    const todayRecord = this.getTodayRecord(account);
+    return todayRecord?.profit ?? 0;
+  }
+
   getTotalPnL(account: Account): number {
     if (!account || !account.pointsHistory) return 0;
     return account.pointsHistory.reduce((sum, record) => {
+      const start = record.startBalance ?? 0;
+      const end = record.endBalance ?? record.balance ?? 0;
       const profit = record.profit ?? 0;
-      return sum +  profit;
+      const dailyPnL = (end - start) + profit;
+      return sum + dailyPnL;
     }, 0);
   }
 

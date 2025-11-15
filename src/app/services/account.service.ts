@@ -150,6 +150,18 @@ export class AccountService {
     this.saveAccounts();
   }
 
+  updateAccount(updatedAccount: Account): void {
+    const index = this.accounts.findIndex(acc => acc.id === updatedAccount.id);
+    if (index === -1) return;
+
+    this.accounts[index] = { ...updatedAccount };
+    this.accountsSubject.next(this.accounts);
+    if (this.selectedAccountSubject.value?.id === updatedAccount.id) {
+      this.selectedAccountSubject.next(updatedAccount);
+    }
+    this.saveAccounts();
+  }
+
   /**
    * Get a record for a specific account and date (matching by UTC day)
    */

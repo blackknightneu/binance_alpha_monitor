@@ -1,6 +1,7 @@
 <div class="account-manager">
   <div class="header">
     <h2>{{ t('title') }}</h2>
+
     <div class="actions">
       <button routerLink="/create-account" class="btn-primary btn-with-icon btn-new" [attr.aria-label]="t('createAccount')">
         <span class="btn-icon">+</span>
@@ -15,6 +16,10 @@
         <span>{{ t('importCsv') }}</span>
         <input type="file" accept=".csv" (change)="importData($event)" hidden>
       </label>
+      <button (click)="openCustomFieldsModal()" class="btn-secondary btn-pill" [attr.aria-label]="t('customManageFields')">
+        <span class="btn-icon">⚙️</span>
+        <span>{{ t('customManageFields') }}</span>
+      </button>
     </div>
   </div>
 
@@ -71,6 +76,11 @@
                   {{ getTodayPnL(account) | number:'1.1-1' }}
                 </span>
               </ng-container>
+              <ng-container *ngSwitchCase="'todayProfit'">
+                <span [ngClass]="{ 'positive': getTodayProfit(account) > 0, 'negative': getTodayProfit(account) < 0 }">
+                  {{ getTodayProfit(account) | number:'1.1-1' }}
+                </span>
+              </ng-container>
               <ng-container *ngSwitchCase="'todayBalancePoints'">
                 {{ getTodayBalancePoints(account) | number:'1.0-0' }}
               </ng-container>
@@ -100,6 +110,18 @@
                   {{ (getTotalPnL(account) >= 0 ? '+' : '') + (getTotalPnL(account) | number:'1.1-1') }}
                 </span>
               </ng-container>
+              <!-- Custom Fields -->
+              <ng-container *ngIf="option.id.startsWith('custom_')">
+                <ng-container *ngIf="getFieldDefinition(option.id)">
+                  <ng-container *ngIf="getFieldDefinition(option.id)?.type === 'boolean'">
+                    <span *ngIf="getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '')">✓</span>
+                    <span *ngIf="!getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '')">✗</span>
+                  </ng-container>
+                  <ng-container *ngIf="getFieldDefinition(option.id)?.type === 'text'">
+                    {{ getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '') }}
+                  </ng-container>
+                </ng-container>
+              </ng-container>
             </td>
           </ng-container>
           <td *ngIf="isAnyActionVisible()" class="col-actions">
@@ -119,6 +141,10 @@
               <button *ngIf="getColumnVisibility('showDeleteButton')" class="btn-danger btn-with-icon btn-delete-one" (click)="deleteAccount(account.id); $event.stopPropagation()" [attr.aria-label]="t('delete')">
                 <span class="btn-icon">🗑</span>
                 <span class="sr-only">{{ t('delete') }}</span>
+              </button>
+              <button *ngIf="customFields.length > 0" class="btn-secondary btn-with-icon" (click)="openEditCustomFieldsModal(account); $event.stopPropagation()" [attr.aria-label]="t('customEditInfo')">
+                <span class="btn-icon">📝</span>
+                <span class="sr-only">{{ t('customEditInfo') }}</span>
               </button>
             </div>
           </td>
@@ -141,6 +167,7 @@
     <input type="datetime-local" [(ngModel)]="loginTime" />
     <div class="modal-actions">
       <button class="btn-primary left" (click)="confirmLoginWithTime()">{{ t('confirm') }}</button>
+      <button class="btn-secondary" (click)="closeLoginModal()">{{ t('cancel') }}</button>
     </div>
   </div>
 </div>
@@ -186,6 +213,92 @@
       <button class="btn-primary" (click)="confirmRiskDate()">{{ t('save') }}</button>
       <button class="btn-danger" *ngIf="riskAccount?.riskDate" (click)="clearRiskDate()">{{ t('remove') }}</button>
       <button class="btn-secondary" (click)="closeRiskModal()">{{ t('cancel') }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Fields Management Modal -->
+<div *ngIf="showCustomFieldsModal" class="modal-overlay" (click)="closeCustomFieldsModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h3>{{ t('customManageFields') }}</h3>
+
+    <div class="modal-actions" style="margin-bottom: 1rem;">
+      <button class="btn-primary" (click)="openAddFieldModal()">{{ t('customAddNewField') }}</button>
+      <button class="btn-secondary" (click)="closeCustomFieldsModal()">{{ t('cancel') }}</button>
+    </div>
+
+    <div *ngIf="customFields.length === 0" style="text-align: center; padding: 2rem; color: #666;">
+      {{ t('customNoFieldsDefined') }}. {{ t('customAddNewField') | lowercase }} {{ t('createAccount') | lowercase }}.
+    </div>
+
+    <div *ngIf="customFields.length > 0" class="field-list" style="max-height: 300px; overflow-y: auto;">
+      <div *ngFor="let field of customFields" class="field-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.5rem;">
+        <div>
+          <strong>{{ field.name }}</strong>
+          <span style="color: #666; font-size: 0.9rem;">({{ field.type === 'text' ? t('customTextType') : t('customBooleanType') }})</span>
+        </div>
+        <button class="btn-danger btn-with-icon" (click)="deleteCustomField(field.id)" style="margin-left: 0.5rem;">
+          <span class="btn-icon">🗑</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Custom Field Modal -->
+<div *ngIf="showAddFieldModal" class="modal-overlay" (click)="closeAddFieldModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h3>{{ t('customAddNewField') }}</h3>
+
+    <div style="margin-bottom: 1rem;">
+      <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{{ t('customFieldName') }}:</label>
+      <input type="text" [(ngModel)]="newFieldName" [placeholder]="'Ví dụ: ' + (language === 'vi' ? 'Ghi chú, VIP,...' : 'Notes, VIP,...')" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px;">
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+      <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{{ t('customFieldType') }}:</label>
+      <select [(ngModel)]="newFieldType" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px;">
+        <option value="text">{{ t('customTextType') }}</option>
+        <option value="boolean">{{ t('customBooleanType') }}</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-primary" (click)="addCustomField()">{{ t('customAddField') }}</button>
+      <button class="btn-secondary" (click)="closeAddFieldModal()">{{ t('cancel') }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Custom Fields Modal -->
+<div *ngIf="showEditCustomFieldsModal" class="modal-overlay" (click)="closeEditCustomFieldsModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h3>{{ t('customEditInfo') }} - {{ editAccount?.name }}</h3>
+
+    <div *ngIf="customFields.length === 0" style="text-align: center; padding: 2rem; color: #666;">
+      {{ t('customNoFieldsDefined') }}.
+    </div>
+
+    <div *ngIf="customFields.length > 0" style="max-height: 400px; overflow-y: auto;">
+      <div *ngFor="let field of customFields" style="margin-bottom: 1rem;">
+        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{{ field.name }}:</label>
+
+        <div *ngIf="field.type === 'text'">
+          <input type="text" [(ngModel)]="customFieldValues[field.id]" [placeholder]="(language === 'vi' ? 'Nhập ' : 'Enter ') + (field.name | lowercase) + '...'" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px;">
+        </div>
+
+        <div *ngIf="field.type === 'boolean'">
+          <label style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" [(ngModel)]="customFieldValues[field.id]">
+            <span>{{ field.name }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top: 1rem;">
+      <button class="btn-primary" (click)="saveCustomFieldValues()">{{ t('customSave') }}</button>
+      <button class="btn-secondary" (click)="closeEditCustomFieldsModal()">{{ t('cancel') }}</button>
     </div>
   </div>
 </div>

@@ -6,6 +6,15 @@ export interface Account {
     pointsHistory: PointsRecord[];
     lastLogin?: Date;
     riskDate?: Date;
+    customFields?: Record<string, any>; // Additional custom fields
+}
+
+export interface CustomFieldDefinition {
+    id: string;
+    name: string;
+    type: 'text' | 'boolean';
+    required?: boolean;
+    defaultValue?: any;
 }
 
 export interface PointsRecord {
