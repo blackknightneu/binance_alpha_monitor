@@ -1,0 +1,111 @@
+{
+    "success": true,
+    "data": {
+        "apiKey": "ANHTRIDEPTRAI951",
+        "bodyData": {
+            "accounts": [
+			{
+                    "id": "1762343249254448",
+                    "name": "18 Tri",
+                    "balance": 1025.1,
+                    "lastUpdated": "2025-11-17T00:00:00.000Z",
+                    "pointsHistory": [{
+                            "date": "2025-10-20T00:00:00.000Z",
+                            "startBalance": 10000,
+                            "endBalance": 10000,
+                            "balance": 10000,
+                            "balancePoints": 3,
+                            "volumePoints": 15,
+                            "bonusPoints": 0,
+                            "totalPoints": 18,
+                            "volume": 32768,
+                            "modified": true,
+                            "profit": 0,
+                            "deductedPoints": 0
+                        }, {
+                            "date": "2025-10-21T00:00:00.000Z",
+                            "startBalance": 10000,
+                            "endBalance": 10000,
+                            "balance": 10000,
+                            "balancePoints": 3,
+                            "volumePoints": 15,
+                            "bonusPoints": 0,
+                            "totalPoints": 18,
+                            "volume": 32768,
+                            "modified": true,
+                            "profit": 0,
+                            "deductedPoints": 0
+                        }, {
+                            "date": "2025-10-22T00:00:00.000Z",
+                            "startBalance": 10000,
+                            "endBalance": 10000,
+                            "balance": 10000,
+                            "balancePoints": 3,
+                            "volumePoints": 15,
+                            "bonusPoints": 0,
+                            "totalPoints": 3,
+                            "volume": 32768,
+                            "modified": true,
+                            "profit": 0,
+                            "deductedPoints": 15
+                        }
+                    ]
+                },  {
+                    "id": "1762343249450532",
+                    "name": "01 A The",
+                    "balance": 1030.65539,
+                    "lastUpdated": "2025-11-16T00:00:00.000Z",
+                    "pointsHistory": [{
+                            "date": "2025-10-21T00:00:00.000Z",
+                            "startBalance": 1105.56,
+                            "endBalance": 1105.56,
+                            "balance": 1000,
+                            "balancePoints": 2,
+                            "volumePoints": 15,
+                            "bonusPoints": 0,
+                            "totalPoints": 17,
+                            "volume": 32768,
+                            "modified": true,
+                            "profit": 0,
+                            "deductedPoints": 0
+                        }, {
+                            "date": "2025-10-22T00:00:00.000Z",
+                            "startBalance": 1105.56,
+                            "endBalance": 1105.56,
+                            "balance": 1000,
+                            "balancePoints": 2,
+                            "volumePoints": 15,
+                            "bonusPoints": 0,
+                            "totalPoints": 17,
+                            "volume": 32768,
+                            "modified": true,
+                            "profit": 0,
+                            "deductedPoints": 0
+                        }
+                    ],
+                    "lastLogin": "2025-11-15T06:53:00.000Z",
+                    "customFields": {
+                        "mhzqb49pajd66x8hgcv": true,
+                        "mhzqbx1pxewe6yd4qv": "1234567"
+                    }
+                }
+            ],
+            "customFields": [{
+                    "name": "Ví",
+                    "type": "text",
+                    "id": "mhzuyjtfsaz8rqtfygi"
+                }, {
+                    "name": "Ví Mexc",
+                    "type": "text",
+                    "id": "mi1gc92p29r7yocurlr"
+                }
+            ],
+            "timestamp": "2025-11-17T09:20:38.758Z",
+            "uploadAllData": false,
+            "uploadAllPointHistory": false,
+            "totalAccounts": 19,
+            "totalPointHistoryRecords": 515
+        },
+        "updatedAt": "2025-11-17T09:20:40.084Z"
+    }
+}

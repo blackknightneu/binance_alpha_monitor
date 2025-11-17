@@ -241,7 +241,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.syncError = false;
 
       // Make API call to get data from server
-      const response = await fetch(`https://binancealphaapi.vercel.app/api/data?apiKey=${apiKey}`, {
+  const response = await fetch(`https://binancealphaapi.vercel.app/api/data?apiKey=${apiKey}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -257,22 +257,52 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
 
       const result = await response.json();
+      console.log('Sync from server - received data:', result);
 
       // Update local storage with server data
-      if (result.accounts && Array.isArray(result.accounts)) {
-        // Update accounts in localStorage
-        localStorage.setItem('accounts', JSON.stringify(result.accounts));
-        this.accounts = result.accounts;
-      }
+      if (result.success && result.data && result.data.bodyData) {
+        const bodyData = result.data.bodyData;
+        
+        if (bodyData.accounts && Array.isArray(bodyData.accounts)) {
+          console.log('Updating accounts from server:', bodyData.accounts.length, 'accounts');
+          
+          // Convert date strings to Date objects
+          const processedAccounts = bodyData.accounts.map((account: any) => ({
+            ...account,
+            lastUpdated: account.lastUpdated ? new Date(account.lastUpdated) : new Date(),
+            pointsHistory: account.pointsHistory ? account.pointsHistory.map((record: any) => ({
+              ...record,
+              date: record.date ? new Date(record.date) : new Date()
+            })) : []
+          }));
+          
+          // Update accounts in localStorage
+          localStorage.setItem('binance_alpha_accounts', JSON.stringify(processedAccounts));
+          
+          // Update service's BehaviorSubject directly to trigger change detection
+          this.accountService['accountsSubject'].next(processedAccounts);
+          
+          // Update local component state
+          this.accounts = [...processedAccounts];
+          
+          console.log('Accounts updated successfully, new count:', this.accounts.length);
+        }
 
-      if (result.customFields && typeof result.customFields === 'object') {
-        // Update custom fields in localStorage and service
-        localStorage.setItem('customFields', JSON.stringify(result.customFields));
-        // Update the service's BehaviorSubject directly
-        this.customFieldsService['customFieldsSubject'].next(result.customFields);
-      }
+        if (bodyData.customFields && Array.isArray(bodyData.customFields)) {
+          console.log('Updating custom fields from server:', bodyData.customFields.length, 'fields');
+          
+          // Update custom fields in localStorage and service
+          localStorage.setItem('custom-field-definitions', JSON.stringify(bodyData.customFields));
+          // Update the service's BehaviorSubject directly
+          this.customFieldsService['customFieldsSubject'].next(bodyData.customFields);
+          
+          console.log('Custom fields updated successfully');
+        }
 
-      this.syncMessage = `Đã đồng bộ thành công! ${result.accounts?.length || 0} tài khoản và ${Object.keys(result.customFields || {}).length} trường tùy chỉnh`;
+        this.syncMessage = `Đã đồng bộ thành công! Đã tải ${bodyData.accounts?.length || 0} tài khoản và ${bodyData.customFields?.length || 0} trường tùy chỉnh từ server`;
+      } else {
+        throw new Error('Invalid response format from server');
+      }
       this.syncError = false;
 
       // Show success message briefly
