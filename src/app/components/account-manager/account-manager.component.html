@@ -61,8 +61,8 @@
             [class.selected]="account.id === selectedAccount?.id"
             [class.no-volume]="hasNoVolume(account)"
             (click)="selectAccount(account.id)">
-          <td class="col-stt">{{ i + 1 }}</td>
-          <td *ngIf="isAnyActionVisible()" class="col-actions">
+          <td class="col-stt" data-label="STT">{{ i + 1 }}</td>
+          <td *ngIf="isAnyActionVisible()" class="col-actions" data-label="Actions">
             <div class="action-buttons">
               <button *ngIf="getColumnVisibility('showRenameButton')" class="btn-secondary btn-with-icon btn-rename" (click)="openRenameModal(account); $event.stopPropagation()" [attr.aria-label]="t('rename')">
                 <span class="btn-icon">✎</span>
@@ -86,11 +86,12 @@
               </button>
             </div>
           </td>
-          <td class="col-name">{{ account.name }}</td>
+          <td class="col-name" data-label="Name">{{ account.name }}</td>
           <ng-container *ngFor="let option of columnOptions; trackBy: trackColumnOption">
             <td *ngIf="option.visible && !option.id.startsWith('show')"
                 [class.col-numeric]="option.id !== 'logoutCountdown' && option.id !== 'riskDate'"
                 [style.width]="option.width"
+                [attr.data-label]="getColumnLabel(option)"
                 [ngSwitch]="option.id">
               <ng-container *ngSwitchCase="'todayStartBalance'">
                 {{ getTodayStartBalance(account) | number:'1.0-0' }}

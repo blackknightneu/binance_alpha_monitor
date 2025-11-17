@@ -407,8 +407,71 @@ button.btn-ghost, label.btn-ghost {
       border: 1px solid #e5e7eb;
       border-radius: 10px;
       padding: 0.75rem;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    td {
+      border: none;
+      padding: 0.5rem 0;
+      text-align: left;
+      position: relative;
+      padding-left: 50%;
+
+      &::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 45%;
+        padding-right: 10px;
+        white-space: nowrap;
+        font-weight: bold;
+        color: #374151;
+        font-size: 0.85rem;
+      }
+
+      &:first-child::before { content: "STT"; }
+      &:nth-child(2)::before { content: "Actions"; }
+      &:nth-child(3)::before { content: "Name"; }
+    }
+
+    .col-actions {
+      padding-left: 0;
+      text-align: center;
+
+      &::before { display: none; }
+
+      .action-buttons {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
+    }
+
+    .col-numeric, .col-actions { text-align: left; }
+  }
+
+  .header {
+    .actions {
+      flex-direction: column;
+      gap: 0.5rem;
+      width: 100%;
+
+      .btn-pill {
+        width: 100%;
+        justify-content: center;
+      }
     }
   }
 
-  .col-numeric, .col-actions { text-align: left; }
+  .column-selector {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+
+    .column-summary {
+      font-size: 0.8rem;
+      text-align: left;
+    }
+  }
 }

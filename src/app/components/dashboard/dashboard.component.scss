@@ -13,6 +13,12 @@
     gap: 1rem;
     margin-bottom: 1rem;
 
+    .btn-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
     .btn-primary {
       background: #f0b90b;
       color: #0f172a;
@@ -33,6 +39,22 @@
 
       &:active {
         transform: translateY(0);
+      }
+    }
+
+    .btn-small {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #e2e8f0;
       }
     }
   }
@@ -195,6 +217,155 @@
         min-width: 0;
         width: 100%;
         display: block;
+      }
+    }
+  }
+
+  // Mobile responsiveness
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: stretch;
+
+      .btn-primary {
+        padding: 0.875rem 1rem;
+        font-size: 0.9rem;
+
+        .btn-icon {
+          font-size: 1rem;
+        }
+      }
+
+      .btn-small {
+        padding: 0.625rem 0.875rem;
+        font-size: 0.8rem;
+      }
+    }
+
+    .unified-stats-panel {
+      padding: 1rem;
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+
+        .stat-item {
+          padding: 0.75rem;
+
+          .stat-label {
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+          }
+
+          .stat-value {
+            font-size: 1.5rem;
+          }
+        }
+      }
+    }
+
+    .main-layout {
+      gap: 0.75rem;
+    }
+
+    .dashboard-footer {
+      margin-top: 1.5rem;
+      padding: 1rem 0;
+
+      .footer-content {
+        padding: 0 0.5rem;
+
+        .copyright,
+        .contact {
+          font-size: 0.8rem;
+        }
+      }
+    }
+
+    .modal {
+      padding: 1.5rem;
+      max-width: 95%;
+      margin: 1rem;
+
+      h3 {
+        font-size: 1.1rem;
+      }
+
+      p {
+        font-size: 0.85rem;
+      }
+
+      .form-group {
+        .api-key-input {
+          padding: 0.625rem;
+          font-size: 0.9rem;
+        }
+
+        .checkbox-label {
+          font-size: 0.85rem;
+        }
+      }
+
+      .modal-actions {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+
+        button {
+          width: 100%;
+          padding: 0.75rem;
+          font-size: 0.9rem;
+        }
+      }
+
+      .sync-message {
+        font-size: 0.8rem;
+        padding: 0.625rem;
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .unified-stats-panel {
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+
+        .stat-item {
+          padding: 0.625rem;
+
+          .stat-label {
+            font-size: 0.7rem;
+          }
+
+          .stat-value {
+            font-size: 1.25rem;
+          }
+        }
+      }
+    }
+
+    .modal {
+      padding: 1rem;
+      max-width: 98%;
+      margin: 0.5rem;
+
+      h3 {
+        font-size: 1rem;
+      }
+
+      .modal-actions {
+        button {
+          padding: 0.625rem;
+          font-size: 0.85rem;
+        }
       }
     }
   }
@@ -369,24 +540,6 @@
         background: #f0fdf4;
         color: #16a34a;
         border: 1px solid #bbf7d0;
-      }
-    }
-  }
-
-  .action-buttons {
-    .btn-small {
-      padding: 0.5rem 1rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      background: #f1f5f9;
-      color: #64748b;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-
-      &:hover {
-        background: #e2e8f0;
       }
     }
   }
