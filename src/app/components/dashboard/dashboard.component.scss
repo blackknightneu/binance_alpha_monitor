@@ -289,6 +289,28 @@
           border-color: #f0b90b;
         }
       }
+
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-weight: 500;
+        color: #374151;
+
+        input[type="checkbox"] {
+          width: 16px;
+          height: 16px;
+          accent-color: #f0b90b;
+        }
+      }
+
+      .checkbox-hint {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+      }
     }
 
     .modal-actions {

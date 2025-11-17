@@ -23,9 +23,9 @@ app.use(cors({
   credentials: true
 }));
 
-// Parse JSON bodies with increased limit
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Parse JSON bodies with increased limit for larger data uploads including point history
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ limit: '200mb', extended: true }));
 
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -58,6 +58,10 @@ app.post('/api/data', (req, res) => {
     console.log('Data sync received:', {
       apiKey: apiKey.substring(0, 8) + '...',
       accountsCount: bodyData.accounts.length,
+      totalAccounts: bodyData.totalAccounts,
+      pointHistoryRecords: bodyData.totalPointHistoryRecords || 'unknown',
+      uploadAllData: bodyData.uploadAllData,
+      uploadAllPointHistory: bodyData.uploadAllPointHistory,
       customFieldsCount: bodyData.customFields.length,
       timestamp: bodyData.timestamp
     });

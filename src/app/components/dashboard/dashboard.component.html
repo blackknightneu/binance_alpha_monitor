@@ -31,6 +31,22 @@
           autofocus>
       </div>
       
+      <div class="form-group" *ngIf="isSyncToServer">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="uploadAllData">
+          <span>Upload tất cả accounts ({{ accounts.length }} accounts)</span>
+        </label>
+        <small class="checkbox-hint">Nếu không check, chỉ upload 500 accounts gần nhất</small>
+        
+        <br><br>
+        
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="uploadAllPointHistory">
+          <span>Upload tất cả point history</span>
+        </label>
+        <small class="checkbox-hint">Nếu không check, chỉ upload 100 records gần nhất cho mỗi account</small>
+      </div>
+      
       <div class="modal-actions">
         <button (click)="closeApiKeyModal()" class="btn-secondary">Hủy</button>
         <button (click)="confirmSync()" class="btn-primary" [disabled]="!apiKeyInput.trim()">{{ isEditingApiKey ? 'Cập nhật' : 'Đồng bộ' }}</button>
