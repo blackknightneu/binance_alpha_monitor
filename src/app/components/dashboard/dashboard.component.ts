@@ -33,6 +33,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
     totalProfit: 0
   };
 
+  // Comprehensive statistics for all accounts and all dates
+  comprehensiveStats = {
+    totalFee: 0,
+    totalAirdrop: 0,
+    totalPnL: 0,
+    totalTradingDays: 0,
+    totalVolume: 0,
+    averageFeePerDay: 0
+  };
+
   constructor(private accountService: AccountService) {
     this.selectedAccount$ = this.accountService.getSelectedAccount();
   }
@@ -42,6 +52,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.accountService.getAccounts().subscribe(accounts => {
         this.accounts = accounts;
         this.calculateSummary();
+        this.calculateComprehensiveStats();
       })
     );
   }
@@ -81,6 +92,43 @@ export class DashboardComponent implements OnInit, OnDestroy {
       totalCost,
       averageCostPer1000,
       totalProfit
+    };
+  }
+
+  private calculateComprehensiveStats(): void {
+    let totalFee = 0;
+    let totalAirdrop = 0;
+    let totalPnL = 0;
+    let totalTradingDays = 0;
+    let totalVolume = 0;
+
+    for (const account of this.accounts) {
+      // Get all records for this account
+      const records = account.pointsHistory;
+      
+      for (const record of records) {
+        // Fee = endBalance - startBalance (cost paid)
+        const fee = (record.endBalance ?? 0) - (record.startBalance ?? 0);
+        totalFee += fee;
+        
+        // Airdrop = profit from the record
+        totalAirdrop += record.profit || 0;
+        
+        // PnL = profit - fee (net profit/loss)
+        totalPnL += (record.profit || 0) + fee;
+      
+      }
+    }
+
+    const averageFeePerDay = totalTradingDays > 0 ? (totalFee / totalTradingDays) : 0;
+
+    this.comprehensiveStats = {
+      totalFee,
+      totalAirdrop,
+      totalPnL,
+      totalTradingDays,
+      totalVolume,
+      averageFeePerDay
     };
   }
 

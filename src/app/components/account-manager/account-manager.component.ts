@@ -219,8 +219,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     {
       id: 'todayCost',
       labels: {
-        vi: 'Chi phí hôm nay',
-        en: "Cost (today)"
+        vi: 'Fee(today)',
+        en: "Fee(today)"
       },
       visible: true,
       width: '100px'
@@ -228,8 +228,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     {
       id: 'todayProfit',
       labels: {
-        vi: 'Lợi nhuận hôm nay',
-        en: "Today's profit"
+        vi: 'Airdrop',
+        en: "Airdrop"
       },
       visible: true,
       width: '120px'

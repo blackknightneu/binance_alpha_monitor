@@ -59,6 +59,59 @@
     }
   }
 
+  .unified-stats-panel {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.1);
+
+    h2 {
+      margin: 0 0 1.5rem 0;
+      color: #0f172a;
+      font-size: 1.5rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+
+      .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(248, 250, 252, 0.8);
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+
+        .stat-label {
+          font-size: 1.75rem;
+          color: #64748b;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+          line-height: 1.2;
+        }
+
+        .stat-value {
+          font-size: 2.25rem;
+          font-weight: 700;
+          color: #0f172a;
+
+          &.positive {
+            color: #16a34a;
+          }
+
+          &.negative {
+            color: #dc2626;
+          }
+        }
+      }
+    }
+  }
+
   .main-layout {
     display: flex;
     gap: 0.5rem;
@@ -112,6 +165,44 @@
         min-width: 0;
         width: 100%;
         display: block;
+      }
+    }
+  }
+
+  .dashboard-footer {
+    margin-top: 2rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    text-align: center;
+
+    .footer-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1rem;
+
+      .copyright {
+        margin: 0 0 0.5rem 0;
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .contact {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.875rem;
+
+        a {
+          color: #f0b90b;
+          text-decoration: none;
+          font-weight: 600;
+          transition: color 0.2s ease;
+
+          &:hover {
+            color: #e6a800;
+            text-decoration: underline;
+          }
+        }
       }
     }
   }

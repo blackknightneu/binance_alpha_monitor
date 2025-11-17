@@ -1,30 +1,50 @@
 <div class="dashboard-container">
   <h1>Binance Alpha Dashboard</h1>
 
-  <!-- Summary Panel -->
-  <div class="summary-panel">
-    <h2>Tóm tắt hôm nay</h2>
-    <div class="summary-grid">
-      <div class="summary-item">
-        <div class="summary-label">Tài khoản có volume</div>
-        <div class="summary-value">{{ summaryData.accountsWithVolume }} / {{ accounts.length }}</div>
+  <!-- Unified Statistics Panel -->
+  <div class="unified-stats-panel">
+    <div class="stats-grid">
+      <!-- All-time Data -->
+      <div class="stat-item">
+        <div class="stat-label">Tổng Fee</div>
+        <div class="stat-value">{{ comprehensiveStats.totalFee | number:'1.0-2' }}</div>
       </div>
-      <div class="summary-item">
-        <div class="summary-label">Tổng chi phí</div>
-        <div class="summary-value">{{ summaryData.totalCost | number:'1.0-2' }}</div>
-      </div>
-      <div class="summary-item">
-        <div class="summary-label">Chi phí TB/1000</div>
-        <div class="summary-value" [class]="summaryData.averageCostPer1000 < -0.2 ? 'negative' : 'positive'">
-          {{ summaryData.averageCostPer1000 | number:'1.1-3' }}
+      <div class="stat-item">
+        <div class="stat-label">Tổng Airdrop</div>
+        <div class="stat-value" [class]="comprehensiveStats.totalAirdrop >= 0 ? 'positive' : 'negative'">
+          {{ comprehensiveStats.totalAirdrop | number:'1.0-2' }}
         </div>
       </div>
-      <div class="summary-item">
-        <div class="summary-label">Tổng lợi nhuận</div>
-        <div class="summary-value" [class]="summaryData.totalProfit >= 0 ? 'positive' : 'negative'">
+      <div class="stat-item">
+        <div class="stat-label">Tổng PnL</div>
+        <div class="stat-value" [class]="comprehensiveStats.totalPnL >= 0 ? 'positive' : 'negative'">
+          {{ comprehensiveStats.totalPnL | number:'1.0-2' }}
+        </div>
+      </div>
+
+      <!-- Today's Data -->
+      <div class="stat-item">
+        <div class="stat-label">Đã trade hôm nay </div>
+        <div class="stat-value">{{ summaryData.accountsWithVolume }} / {{ accounts.length }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Airdrop hôm nay</div>
+        <div class="stat-value" [class]="summaryData.totalProfit >= 0 ? 'positive' : 'negative'">
           {{ summaryData.totalProfit | number:'1.0-2' }}
         </div>
       </div>
+
+      <div class="stat-item">
+        <div class="stat-label">Fee hôm nay</div>
+        <div class="stat-value">{{ summaryData.totalCost | number:'1.0-2' }}</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Avg Fee hôm nay</div>
+        <div class="stat-value" [class]="summaryData.averageCostPer1000 < -0.2 ? 'negative' : 'positive'">
+          {{ summaryData.averageCostPer1000 | number:'1.1-3' }}
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -37,4 +57,12 @@
       <app-account-calendar></app-account-calendar>
     </div>
   </div>
+
+  <!-- Footer -->
+  <footer class="dashboard-footer">
+    <div class="footer-content">
+      <p class="copyright">© 2025 Binance Alpha Monitor</p>
+      <p class="contact">Liên hệ: <a href="https://t.me/binance_alpha_monitor" target="_blank" rel="noopener noreferrer">&#64;binance_alpha_monitor</a></p>
+    </div>
+  </footer>
 </div>
