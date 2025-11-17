@@ -7,6 +7,7 @@ import { AccountService } from '../../services/account.service';
 import { Observable, Subscription } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { Account } from '../../models/account.model';
+import { CustomFieldsService } from '../../services/custom-fields.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,6 +25,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   selectedAccount$: Observable<Account | null>;
   accounts: Account[] = [];
   private subscription: Subscription = new Subscription();
+
+  // Sync functionality
+  showApiKeyModal = false;
+  apiKeyInput = '';
+  syncMessage = '';
+  syncError = false;
+  isSyncToServer = true; // Track sync direction
+  isEditingApiKey = false; // Track if editing API key
 
   // Summary data
   summaryData = {
@@ -43,7 +52,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     averageFeePerDay: 0
   };
 
-  constructor(private accountService: AccountService) {
+  constructor(private accountService: AccountService, private customFieldsService: CustomFieldsService) {
     this.selectedAccount$ = this.accountService.getSelectedAccount();
   }
 
@@ -195,5 +204,183 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!this.csvImportText) { this.importResult = 'No CSV provided'; return; }
     const res = this.accountService.importFromCsv(this.csvImportText);
     this.importResult = `Imported: ${res.imported}, Errors: ${res.errors}`;
+  }
+
+  // Sync data to server
+  syncToServer(): void {
+    this.isSyncToServer = true;
+    this.isEditingApiKey = false;
+    // Check if API key exists in localStorage
+    const storedApiKey = localStorage.getItem('sync_api_key');
+
+    if (storedApiKey) {
+      this.performSync(storedApiKey);
+    } else {
+      this.showApiKeyModal = true;
+      this.apiKeyInput = '';
+      this.syncMessage = '';
+      this.syncError = false;
+    }
+  }
+
+  // Sync data from server to local
+  async syncFromServer(): Promise<void> {
+    this.isSyncToServer = false;
+    this.isEditingApiKey = false;
+    const apiKey = localStorage.getItem('sync_api_key');
+    if (!apiKey) {
+      this.showApiKeyModal = true;
+      this.syncMessage = 'Vui lòng nhập API Key để đồng bộ từ server';
+      return;
+    }
+
+    try {
+      this.syncMessage = 'Đang tải dữ liệu từ server...';
+      this.syncError = false;
+
+      // Make API call to get data from server
+      const response = await fetch(`https://binancealphaapi.vercel.app/api/data?apiKey=${apiKey}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+        mode: 'cors'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      // Update local storage with server data
+      if (result.accounts && Array.isArray(result.accounts)) {
+        // Update accounts in localStorage
+        localStorage.setItem('accounts', JSON.stringify(result.accounts));
+        this.accounts = result.accounts;
+      }
+
+      if (result.customFields && typeof result.customFields === 'object') {
+        // Update custom fields in localStorage and service
+        localStorage.setItem('customFields', JSON.stringify(result.customFields));
+        // Update the service's BehaviorSubject directly
+        this.customFieldsService['customFieldsSubject'].next(result.customFields);
+      }
+
+      this.syncMessage = `Đã đồng bộ thành công! ${result.accounts?.length || 0} tài khoản và ${Object.keys(result.customFields || {}).length} trường tùy chỉnh`;
+      this.syncError = false;
+
+      // Show success message briefly
+      setTimeout(() => {
+        this.syncMessage = '';
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('Sync from server error:', error);
+      this.syncMessage = 'Lỗi tải dữ liệu từ server: ' + (error.message || 'Unknown error');
+      this.syncError = true; 
+    }
+  }
+
+  closeApiKeyModal(): void {
+    this.showApiKeyModal = false;
+    this.apiKeyInput = '';
+    this.syncMessage = '';
+    this.syncError = false;
+    this.isEditingApiKey = false;
+  }
+
+  confirmSync(): void {
+    if (!this.apiKeyInput.trim()) return;
+
+    // Save API key to localStorage for future use
+    localStorage.setItem('sync_api_key', this.apiKeyInput.trim());
+
+    this.showApiKeyModal = false;
+
+    // If editing API key, just close modal without performing sync
+    if (this.isEditingApiKey) {
+      this.isEditingApiKey = false;
+      this.syncMessage = 'API Key đã được cập nhật!';
+      this.syncError = false;
+      setTimeout(() => {
+        this.syncMessage = '';
+      }, 2000);
+      return;
+    }
+
+    // Otherwise, perform the sync operation
+    this.performSync(this.apiKeyInput.trim());
+  }
+
+  private async performSync(apiKey: string): Promise<void> {
+    try {
+      this.syncMessage = 'Đang đồng bộ dữ liệu...';
+      this.syncError = false;
+
+      // Collect all data from local storage (limit to recent data to avoid 413 error)
+      const accountsData = this.accounts.slice(0, 100); // Limit to 100 most recent accounts
+      const customFieldsData = this.customFieldsService.getCustomFields();
+      
+      const bodyData = {
+        accounts: accountsData,
+        customFields: customFieldsData,
+        timestamp: new Date().toISOString(),
+        totalAccounts: this.accounts.length // Include total count for reference
+      };
+
+      // Make API call to server
+      const response = await fetch('https://binancealphaapi.vercel.app/api/data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+        mode: 'cors',
+        body: JSON.stringify({
+          apiKey: apiKey,
+          bodyData: bodyData
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      this.syncMessage = 'Đồng bộ thành công! ' + (result.message || '');
+      this.syncError = false;
+      
+      // Show success message briefly
+      setTimeout(() => {
+        this.syncMessage = '';
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      this.syncMessage = 'Lỗi đồng bộ: ' + (error.message || 'Unknown error');
+      this.syncError = true;
+      
+      // Clear API key if authentication failed
+      if (error.message.includes('401') || error.message.includes('auth')) {
+        localStorage.removeItem('sync_api_key');
+      }
+    }
+  }
+
+  // Edit API Key
+  editApiKey(): void {
+    const currentApiKey = localStorage.getItem('sync_api_key');
+    this.showApiKeyModal = true;
+    this.apiKeyInput = currentApiKey || '';
+    this.syncMessage = '';
+    this.syncError = false;
+    this.isEditingApiKey = true;
   }
 }

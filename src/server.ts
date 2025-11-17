@@ -5,6 +5,7 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import cors from 'cors';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,6 +14,18 @@ const browserDistFolder = resolve(serverDistFolder, '../browser');
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
+
+// Enable CORS for all routes
+app.use(cors({
+  origin: ['http://localhost:4200', 'http://localhost:4000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Parse JSON bodies with increased limit
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -23,10 +36,88 @@ const angularApp = new AngularNodeAppEngine();
  * app.get('/api/**', (req, res) => {
  *   // Handle API request
  * });
- * ```
+ * ```  
  */
 
-/**
+// API endpoint for data synchronization
+app.post('/api/data', (req, res) => {
+  try {
+    const { apiKey, bodyData } = req.body;
+
+    // Validate API key
+    if (!apiKey) {
+      return res.status(401).json({ error: 'API key is required' });
+    }
+
+    // Validate data structure
+    if (!bodyData || !bodyData.accounts || !bodyData.customFields) {
+      return res.status(400).json({ error: 'Invalid data structure' });
+    }
+
+    // Log sync data (in production, save to database)
+    console.log('Data sync received:', {
+      apiKey: apiKey.substring(0, 8) + '...',
+      accountsCount: bodyData.accounts.length,
+      customFieldsCount: bodyData.customFields.length,
+      timestamp: bodyData.timestamp
+    });
+
+    // Return success response
+    return res.json({
+      success: true,
+      message: `Successfully synced ${bodyData.accounts.length} accounts and ${bodyData.customFields.length} custom fields`,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Sync error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to sync data'
+    });
+  }
+});
+
+// API endpoint to get data from server
+app.get('/api/data', (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const apiKey = authHeader?.replace('Bearer ', '');
+
+    // Validate API key
+    if (!apiKey) {
+      return res.status(401).json({ error: 'API key is required' });
+    }
+
+    // In a real application, you would fetch data from database
+    // For now, return mock data or data from memory
+    const mockAccounts: any[] = [
+      // Mock account data - in production, fetch from database
+    ];
+
+    const mockCustomFields: any = {
+      // Mock custom fields - in production, fetch from database
+    };
+
+    console.log('Data fetch requested:', {
+      apiKey: apiKey.substring(0, 8) + '...',
+      timestamp: new Date().toISOString()
+    });
+
+    return res.json({
+      accounts: mockAccounts,
+      customFields: mockCustomFields,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Fetch data error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to fetch data'
+    });
+  }
+});/**
  * Serve static files from /browser
  */
 app.use(

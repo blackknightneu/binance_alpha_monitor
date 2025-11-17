@@ -1,6 +1,47 @@
 <div class="dashboard-container">
   <h1>Binance Alpha Dashboard</h1>
 
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <button (click)="syncToServer()" class="btn-primary btn-with-icon">
+      <span class="btn-icon">⬆️</span>
+      <span>Tải lên Server</span>
+    </button>
+    <button (click)="syncFromServer()" class="btn-primary btn-with-icon">
+      <span class="btn-icon">⬇️</span>
+      <span>Tải xuống từ Server</span>
+    </button>
+    <button (click)="editApiKey()" class="btn-secondary btn-small">
+      <span>🔑 Edit API Key</span>
+    </button>
+  </div>
+
+  <!-- API Key Modal -->
+  <div *ngIf="showApiKeyModal" class="modal-overlay" (click)="closeApiKeyModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>{{ isEditingApiKey ? 'Chỉnh sửa API Key' : (isSyncToServer ? 'Nhập API Key' : 'Nhập API Key để tải dữ liệu') }}</h3>
+      <p>{{ isEditingApiKey ? 'Cập nhật API Key để đồng bộ dữ liệu:' : (isSyncToServer ? 'Vui lòng nhập API Key để đồng bộ dữ liệu lên server:' : 'Vui lòng nhập API Key để tải dữ liệu từ server:') }}</p>
+      
+      <div class="form-group">
+        <input 
+          type="password" 
+          [(ngModel)]="apiKeyInput" 
+          placeholder="Nhập API Key của bạn"
+          class="api-key-input"
+          autofocus>
+      </div>
+      
+      <div class="modal-actions">
+        <button (click)="closeApiKeyModal()" class="btn-secondary">Hủy</button>
+        <button (click)="confirmSync()" class="btn-primary" [disabled]="!apiKeyInput.trim()">{{ isEditingApiKey ? 'Cập nhật' : 'Đồng bộ' }}</button>
+      </div>
+      
+      <div *ngIf="syncMessage" class="sync-message" [class.error]="syncError">
+        {{ syncMessage }}
+      </div>
+    </div>
+  </div>
+
   <!-- Unified Statistics Panel -->
   <div class="unified-stats-panel">
     <div class="stats-grid">

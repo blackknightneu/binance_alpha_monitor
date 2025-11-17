@@ -730,7 +730,20 @@ export class AccountService {
         // Handle custom fields
         const customFields = this.customFieldsService.getCustomFields();
         for (const customCol of customFieldColumns) {
-          const fieldDef = customFields.find(f => f.name.toLowerCase() === customCol.name);
+          let fieldDef = customFields.find(f => f.name.toLowerCase() === customCol.name);
+          
+          // If custom field definition doesn't exist, create it automatically
+          if (!fieldDef) {
+            console.log(`Creating new custom field definition: ${customCol.name}`);
+            this.customFieldsService.addCustomField({
+              name: customCol.name,
+              type: 'text' // Default to text type, can be changed later
+            });
+            // Refresh the custom fields list
+            const updatedCustomFields = this.customFieldsService.getCustomFields();
+            fieldDef = updatedCustomFields.find(f => f.name.toLowerCase() === customCol.name);
+          }
+          
           if (fieldDef) {
             const rawValue = cols[customCol.index]?.trim() || '';
             let parsedValue: any = rawValue;
