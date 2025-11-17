@@ -24,27 +24,16 @@
       
       <div class="form-group">
         <input 
-          type="password" 
+          [type]="showApiKey ? 'text' : 'password'" 
           [(ngModel)]="apiKeyInput" 
           placeholder="Nhập API Key của bạn"
           class="api-key-input"
           autofocus>
-      </div>
-      
-      <div class="form-group" *ngIf="isSyncToServer">
-        <label class="checkbox-label">
-          <input type="checkbox" [(ngModel)]="uploadAllData">
-          <span>Upload tất cả accounts ({{ accounts.length }} accounts)</span>
-        </label>
-        <small class="checkbox-hint">Nếu không check, chỉ upload 500 accounts gần nhất</small>
-        
         <br><br>
-        
         <label class="checkbox-label">
-          <input type="checkbox" [(ngModel)]="uploadAllPointHistory">
-          <span>Upload tất cả point history</span>
+          <input type="checkbox" [(ngModel)]="showApiKey">
+          <span>Hiển thị API Key</span>
         </label>
-        <small class="checkbox-hint">Nếu không check, chỉ upload 100 records gần nhất cho mỗi account</small>
       </div>
       
       <div class="modal-actions">

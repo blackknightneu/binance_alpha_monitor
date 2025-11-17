@@ -33,8 +33,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   syncError = false;
   isSyncToServer = true; // Track sync direction
   isEditingApiKey = false; // Track if editing API key
-  uploadAllData = false; // Option to upload all accounts instead of limited amount
-  uploadAllPointHistory = false; // Option to upload all point history instead of limited amount
+  showApiKey = false; // Toggle to show/hide API key
 
   // Summary data
   summaryData = {
@@ -323,8 +322,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.syncMessage = '';
     this.syncError = false;
     this.isEditingApiKey = false;
-    this.uploadAllData = false; // Reset upload option
-    this.uploadAllPointHistory = false; // Reset point history option
+    this.showApiKey = false;
   }
 
   confirmSync(): void {
@@ -353,12 +351,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private async performSync(apiKey: string): Promise<void> {
     try {
       // Collect all data from local storage
-      const accountsData = (this.uploadAllData ? this.accounts : this.accounts.slice(0, 500)).map(account => ({
+      const accountsData = this.accounts.map(account => ({
         ...account,
-        // Limit or include all point history based on user preference
-        pointsHistory: this.uploadAllPointHistory ? 
-          (account.pointsHistory || []) : 
-          (account.pointsHistory || [])
+        pointsHistory: account.pointsHistory || []
       }));
       const customFieldsData = this.customFieldsService.getCustomFields();
       
@@ -366,15 +361,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const totalPointHistoryRecords = accountsData.reduce((sum, account) => 
         sum + (account.pointsHistory?.length || 0), 0);
       
-      this.syncMessage = `Đang đồng bộ dữ liệu... (Upload ${accountsData.length}/${this.accounts.length} tài khoản, ${totalPointHistoryRecords} point records)`;
+      this.syncMessage = `Đang đồng bộ dữ liệu... (Upload ${accountsData.length} tài khoản, ${totalPointHistoryRecords} point records)`;
       this.syncError = false;
       
       const bodyData = {
         accounts: accountsData,
         customFields: customFieldsData,
         timestamp: new Date().toISOString(),
-        uploadAllData: this.uploadAllData,
-        uploadAllPointHistory: this.uploadAllPointHistory,
         totalAccounts: this.accounts.length,
         totalPointHistoryRecords: totalPointHistoryRecords
       };
@@ -405,7 +398,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const actualPointHistoryRecords = accountsData.reduce((sum, account) => 
         sum + (account.pointsHistory?.length || 0), 0);
       
-      this.syncMessage = `Đồng bộ thành công! Đã upload ${accountsData.length}/${this.accounts.length} tài khoản, ${actualPointHistoryRecords} point records và ${Object.keys(customFieldsData).length} trường tùy chỉnh`;
+      this.syncMessage = `Đồng bộ thành công! Đã upload ${accountsData.length} tài khoản, ${actualPointHistoryRecords} point records và ${customFieldsData.length} trường tùy chỉnh`;
       this.syncError = false;
       
       // Show success message briefly
