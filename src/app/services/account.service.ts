@@ -1,7 +1,8 @@
 import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { Account, PointsRecord } from '../models/account.model';
+import { Account, PointsRecord, CustomFieldDefinition } from '../models/account.model';
 import { isPlatformBrowser } from '@angular/common';
+import { CustomFieldsService } from './custom-fields.service';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +15,10 @@ export class AccountService {
   private selectedAccountSubject = new BehaviorSubject<Account | null>(null);
   private isBrowser: boolean;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private customFieldsService: CustomFieldsService
+  ) {
     this.isBrowser = isPlatformBrowser(platformId);
     this.loadAccounts();
   }
@@ -303,10 +307,12 @@ export class AccountService {
 
   /**
    * Export all accounts and their records into a CSV string.
-   * Columns: AccountName,Date,Start,End,Vol,Profit,Deducted,Pts,15d Points
+   * Columns: AccountName,RiskDate,LastLogin,LogoutDeadline,Date,Start,End,Balance,BalancePoints,Volume,VolumePoints,Profit,Deducted,Bonus,[CustomFields...]
    */
   exportAllToCsv(): string {
-  const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','Bonus'];
+    const customFields = this.customFieldsService.getCustomFields();
+    const customFieldHeaders = customFields.map(field => field.name);
+    const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','Bonus', ...customFieldHeaders];
     const rows: string[] = [header.join(',')];
 
     for (const acc of this.accounts) {
@@ -316,6 +322,13 @@ export class AccountService {
         const riskDate = acc.riskDate ? new Date(acc.riskDate) : null;
         const lastLogin = acc.lastLogin ? new Date(acc.lastLogin) : null;
         const logoutDeadline = lastLogin ? new Date(lastLogin.getTime() + this.LOGOUT_WINDOW_MS) : null;
+        const customFieldValues = customFields.map(field => {
+          const value = acc.customFields?.[field.id];
+          if (field.type === 'boolean') {
+            return value ? 'true' : 'false';
+          }
+          return this.escapeCsv(String(value ?? ''));
+        });
         const cols = [
           this.escapeCsv(acc.name),
           riskDate ? this.formatIsoDate(riskDate) : '',
@@ -329,7 +342,8 @@ export class AccountService {
           this.numOrEmpty(r.volume),
           this.numOrEmpty(r.volumePoints),
           this.numOrEmpty(r.profit ?? 0),
-          this.numOrEmpty(r.deductedPoints ?? 0)
+          this.numOrEmpty(r.deductedPoints ?? 0),
+          ...customFieldValues
         ];
         rows.push(cols.join(','));
       }
@@ -341,13 +355,22 @@ export class AccountService {
   exportAccountToCsv(accountId: string): string {
     const account = this.accounts.find(a=>a.id===accountId);
     if (!account) return '';
-  const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','Bonus'];
+    const customFields = this.customFieldsService.getCustomFields();
+    const customFieldHeaders = customFields.map(field => field.name);
+    const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','Bonus', ...customFieldHeaders];
     const rows: string[] = [header.join(',')];
     const recs = [...account.pointsHistory].sort((a,b)=>a.date.getTime()-b.date.getTime());
     for (const r of recs) {
       const riskDate = account.riskDate ? new Date(account.riskDate) : null;
       const lastLogin = account.lastLogin ? new Date(account.lastLogin) : null;
       const logoutDeadline = lastLogin ? new Date(lastLogin.getTime() + this.LOGOUT_WINDOW_MS) : null;
+      const customFieldValues = customFields.map(field => {
+        const value = account.customFields?.[field.id];
+        if (field.type === 'boolean') {
+          return value ? 'true' : 'false';
+        }
+        return this.escapeCsv(String(value ?? ''));
+      });
       const cols = [
         this.escapeCsv(account.name),
         riskDate ? this.formatIsoDate(riskDate) : '',
@@ -361,7 +384,8 @@ export class AccountService {
         this.numOrEmpty(r.volume),
         this.numOrEmpty(r.volumePoints),
         this.numOrEmpty(r.profit ?? 0),
-        this.numOrEmpty(r.deductedPoints ?? 0)
+        this.numOrEmpty(r.deductedPoints ?? 0),
+        ...customFieldValues
       ];
       rows.push(cols.join(','));
     }
@@ -481,7 +505,8 @@ export class AccountService {
 
   /**
    * Import CSV content. Expected columns (header order flexible):
-  * AccountName,RiskDate,LastLogin,LogoutDeadline,Date,Start,End,Balance,BalancePoints,Volume,VolumePoints,Profit,Deducted,Bonus
+   * AccountName,RiskDate,LastLogin,LogoutDeadline,Date,Start,End,Balance,BalancePoints,Volume,VolumePoints,Profit,Deducted,Bonus,[CustomFields...]
+   * Custom fields are automatically detected and imported based on the custom field definitions.
    * Returns an object with counts.
    */
   importFromCsv(csvData: string): { imported: number; errors: number } {
@@ -505,6 +530,20 @@ export class AccountService {
       const key = h.replace(/\"/g,'').trim();
       colIndex[key] = i;
     });
+
+    // Identify custom field columns (any column not in the standard set)
+    const standardColumns = new Set([
+      'accountname', 'riskdate', 'lastlogin', 'logoutdeadline', 'date',
+      'start', 'end', 'balance', 'balancepoints', 'volume', 'volumepoints',
+      'profit', 'deducted', 'bonus'
+    ]);
+    const customFieldColumns: Array<{name: string, index: number}> = [];
+    header.forEach((h, i) => {
+      if (!standardColumns.has(h)) {
+        customFieldColumns.push({name: h, index: i});
+      }
+    });
+    console.log('Custom field columns detected:', customFieldColumns);
 
     const aliasPairs: Array<[string, string[]]> = [
       ['volume', ['vol']],
@@ -677,11 +716,33 @@ export class AccountService {
             name: accountName,
             balance: end,
             lastUpdated: new Date(),
-            pointsHistory: []
+            pointsHistory: [],
+            customFields: {}
           };
           this.accounts.push(account);
         } else {
           console.log(`Found existing account: ${accountName}`);
+          if (!account.customFields) {
+            account.customFields = {};
+          }
+        }
+
+        // Handle custom fields
+        const customFields = this.customFieldsService.getCustomFields();
+        for (const customCol of customFieldColumns) {
+          const fieldDef = customFields.find(f => f.name.toLowerCase() === customCol.name);
+          if (fieldDef) {
+            const rawValue = cols[customCol.index]?.trim() || '';
+            let parsedValue: any = rawValue;
+            
+            if (fieldDef.type === 'boolean') {
+              parsedValue = rawValue.toLowerCase() === 'true';
+            } else if (fieldDef.type === 'text') {
+              parsedValue = rawValue;
+            }
+            
+            account.customFields![fieldDef.id] = parsedValue;
+          }
         }
 
         if (hasRiskDateColumn) {

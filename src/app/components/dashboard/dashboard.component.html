@@ -1,13 +1,40 @@
 <div class="dashboard-container">
   <h1>Binance Alpha Dashboard</h1>
 
-  <div class="main-layout">
-    <section class="manager-panel">
-      <app-account-manager></app-account-manager>
-    </section>
+  <!-- Summary Panel -->
+  <div class="summary-panel">
+    <h2>Tóm tắt hôm nay</h2>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-label">Tài khoản có volume</div>
+        <div class="summary-value">{{ summaryData.accountsWithVolume }} / {{ accounts.length }}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Tổng chi phí</div>
+        <div class="summary-value">{{ summaryData.totalCost | number:'1.0-2' }}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Chi phí TB/1000</div>
+        <div class="summary-value" [class]="summaryData.averageCostPer1000 < -0.2 ? 'negative' : 'positive'">
+          {{ summaryData.averageCostPer1000 | number:'1.1-3' }}
+        </div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Tổng lợi nhuận</div>
+        <div class="summary-value" [class]="summaryData.totalProfit >= 0 ? 'positive' : 'negative'">
+          {{ summaryData.totalProfit | number:'1.0-2' }}
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <section class="calendar-panel">
+  <!-- Account Management and Calendar Section -->
+  <div class="main-layout">
+    <div class="manager-panel">
+      <app-account-manager></app-account-manager>
+    </div>
+    <div class="calendar-panel">
       <app-account-calendar></app-account-calendar>
-    </section>
+    </div>
   </div>
 </div>

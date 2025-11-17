@@ -14,6 +14,8 @@ interface TextBundle {
   noRecords: string;
   selectAccountMessage: string;
   invalidValuesMessage: string;
+  viewMore: string;
+  showLess: string;
 }
 
 interface CalendarDay {
@@ -63,6 +65,7 @@ export class AccountCalendarComponent implements OnInit {
   editorVisible = false;
 
   recentRecords: PointsRecord[] = [];
+  showAllRecords = false;
 
   get language(): Language {
     return this.languageService.currentLanguage();
@@ -75,7 +78,9 @@ export class AccountCalendarComponent implements OnInit {
       savedMessage: 'Đã lưu',
       noRecords: 'Hiện chưa có bản ghi nào',
       selectAccountMessage: 'Vui lòng chọn tài khoản trước',
-      invalidValuesMessage: 'Vui lòng nhập giá trị không âm'
+      invalidValuesMessage: 'Vui lòng nhập giá trị không âm',
+      viewMore: 'Xem thêm',
+      showLess: 'Thu gọn'
     },
     en: {
       calendarTitle: 'Trading Calendar',
@@ -84,7 +89,9 @@ export class AccountCalendarComponent implements OnInit {
       savedMessage: 'Saved',
       noRecords: 'No records yet',
       selectAccountMessage: 'Please select an account first',
-      invalidValuesMessage: 'Please enter non-negative values'
+      invalidValuesMessage: 'Please enter non-negative values',
+      viewMore: 'View More',
+      showLess: 'Show Less'
     }
   };
   t = (key: keyof TextBundle) => this.translations[this.language][key];
@@ -351,5 +358,35 @@ export class AccountCalendarComponent implements OnInit {
       }
       return current.date > latest.date ? current : latest;
     }, null as PointsRecord | null);
+  }
+
+  toggleViewMore(): void {
+    this.showAllRecords = !this.showAllRecords;
+  }
+
+  getDisplayedRecords(): PointsRecord[] {
+    if (this.showAllRecords) {
+      return this.recentRecords;
+    }
+    // Show only records from the last 15 days by default
+    return this.recentRecords.filter(r => this.isWithinLast15Days(r.date));
+  }
+
+  shouldShowViewMoreButton(): boolean {
+    const recentRecordsCount = this.recentRecords.filter(r => this.isWithinLast15Days(r.date)).length;
+    return this.recentRecords.length > recentRecordsCount;
+  }
+
+  isWithinLast15Days(recordDate: Date): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const fifteenDaysAgo = new Date(today);
+    fifteenDaysAgo.setDate(today.getDate() - 15);
+    
+    const recordDateOnly = new Date(recordDate);
+    recordDateOnly.setHours(0, 0, 0, 0);
+    
+    return recordDateOnly >= fifteenDaysAgo && recordDateOnly <= today;
   }
 }

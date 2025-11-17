@@ -217,10 +217,10 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       width: '120px'
     },
     {
-      id: 'todayPnL',
+      id: 'todayCost',
       labels: {
-        vi: 'Lãi/Lỗ trong ngày',
-        en: "PnL (today)"
+        vi: 'Chi phí hôm nay',
+        en: "Cost (today)"
       },
       visible: true,
       width: '100px'
@@ -644,8 +644,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
           return a.name.localeCompare(b.name) * dir;
         case 'todayStartBalance':
           return (this.getTodayStartBalance(a) - this.getTodayStartBalance(b)) * dir;
-        case 'todayPnL':
-          return (this.getTodayPnL(a) - this.getTodayPnL(b)) * dir;
+        case 'todayCost':
+          return (this.getTodayCost(a) - this.getTodayCost(b)) * dir;
         case 'todayProfit':
           return (this.getTodayProfit(a) - this.getTodayProfit(b)) * dir;
         case 'todayBalancePoints':
@@ -810,13 +810,9 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     return this.getTodayRecord(account)?.endBalance ?? this.getLatestEndBalance(account);
   }
 
-  getTodayPnL(account: Account): number {
+  getTodayCost(account: Account): number {
     const todayRecord = this.getTodayRecord(account);
-    if (!todayRecord) return 0;
-    const start = todayRecord.startBalance ?? 0;
-    const end = todayRecord.endBalance ?? todayRecord.balance ?? 0;
-    const profit = 0;//todayRecord.profit ?? 0;
-    return (end - start) + profit;
+    return (todayRecord?.endBalance ?? 0) - (todayRecord?.startBalance ?? 0);
   }
 
   getTodayProfit(account: Account): number {
@@ -830,7 +826,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       const start = record.startBalance ?? 0;
       const end = record.endBalance ?? record.balance ?? 0;
       const profit = record.profit ?? 0;
-      const dailyPnL = (end - start) + profit;
+      const deducted = record.deductedPoints ?? 0;
+      const dailyPnL = (end - start) + profit - deducted;
       return sum + dailyPnL;
     }, 0);
   }

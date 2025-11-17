@@ -212,11 +212,16 @@
 .btn-primary.left { background: #22c55e; }
 .btn-secondary { background: #f3f4f6; color: #1f2937; padding: 7px 12px; }
 .btn-danger { background: #ef4444; color: #fff; padding: 7px 12px; }
-.btn-ghost {
+button.btn-ghost, label.btn-ghost {
   background: rgba(255, 255, 255, 0.9);
   color: #1f2937;
   border: 1px solid rgba(148, 163, 184, 0.35);
   padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .btn-ghost.btn-pill { padding: 0.6rem 1.35rem; }

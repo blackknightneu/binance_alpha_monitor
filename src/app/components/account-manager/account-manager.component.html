@@ -7,7 +7,7 @@
         <span class="btn-icon">+</span>
         <span>{{ t('createAccount') }}</span>
       </button>
-      <button (click)="exportData()" class="btn-ghost btn-pill btn-export" [attr.aria-label]="t('exportCsvAria')">
+      <button (click)="exportData()" class="btn-ghost btn-pill" [attr.aria-label]="t('exportCsvAria')">
         <span class="btn-icon">⇩</span>
         <span>{{ t('exportCsv') }}</span>
       </button>
@@ -43,6 +43,7 @@
       <thead>
         <tr>
           <th (click)="sortBy('stt')">{{ t('stt') }} <span class="sort-indicator" *ngIf="sortColumn==='stt'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
+          <th *ngIf="isAnyActionVisible()" class="col-actions">{{ t('actions') }}</th>
           <th class="col-name" (click)="sortBy('name')">{{ t('name') }} <span class="sort-indicator" *ngIf="sortColumn==='name'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
           <ng-container *ngFor="let option of columnOptions; trackBy: trackColumnOption">
             <th *ngIf="option.visible && !option.id.startsWith('show')"
@@ -53,7 +54,6 @@
               <span class="sort-indicator" *ngIf="sortColumn===option.id">{{ sortDir==='asc'?'▲':'▼' }}</span>
             </th>
           </ng-container>
-          <th *ngIf="isAnyActionVisible()" class="col-actions">{{ t('actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -62,6 +62,30 @@
             [class.no-volume]="hasNoVolume(account)"
             (click)="selectAccount(account.id)">
           <td class="col-stt">{{ i + 1 }}</td>
+          <td *ngIf="isAnyActionVisible()" class="col-actions">
+            <div class="action-buttons">
+              <button *ngIf="getColumnVisibility('showRenameButton')" class="btn-secondary btn-with-icon btn-rename" (click)="openRenameModal(account); $event.stopPropagation()" [attr.aria-label]="t('rename')">
+                <span class="btn-icon">✎</span>
+                <span class="sr-only">{{ t('rename') }}</span>
+              </button>
+              <button *ngIf="getColumnVisibility('showRiskButton')" class="btn-secondary btn-with-icon btn-risk" (click)="openRiskModal(account); $event.stopPropagation()" [attr.aria-label]="t('risk')">
+                <span class="btn-icon">⚠</span>
+                <span class="sr-only">{{ t('risk') }}</span>
+              </button>
+              <button *ngIf="getColumnVisibility('showLoginButton')" class="btn-secondary btn-with-icon btn-login" (click)="openLoginModal(account); $event.stopPropagation()" [attr.aria-label]="t('login')">
+                <span class="btn-icon">🕒</span>
+                <span class="sr-only">{{ t('login') }}</span>
+              </button>
+              <button *ngIf="getColumnVisibility('showDeleteButton')" class="btn-danger btn-with-icon btn-delete-one" (click)="deleteAccount(account.id); $event.stopPropagation()" [attr.aria-label]="t('delete')">
+                <span class="btn-icon">🗑</span>
+                <span class="sr-only">{{ t('delete') }}</span>
+              </button>
+              <button *ngIf="customFields.length > 0" class="btn-secondary btn-with-icon" (click)="openEditCustomFieldsModal(account); $event.stopPropagation()" [attr.aria-label]="t('customEditInfo')">
+                <span class="btn-icon">📝</span>
+                <span class="sr-only">{{ t('customEditInfo') }}</span>
+              </button>
+            </div>
+          </td>
           <td class="col-name">{{ account.name }}</td>
           <ng-container *ngFor="let option of columnOptions; trackBy: trackColumnOption">
             <td *ngIf="option.visible && !option.id.startsWith('show')"
@@ -71,9 +95,9 @@
               <ng-container *ngSwitchCase="'todayStartBalance'">
                 {{ getTodayStartBalance(account) | number:'1.0-0' }}
               </ng-container>
-              <ng-container *ngSwitchCase="'todayPnL'">
-                <span [ngClass]="{ 'positive': getTodayPnL(account) > 0, 'negative': getTodayPnL(account) < 0 }">
-                  {{ getTodayPnL(account) | number:'1.1-1' }}
+              <ng-container *ngSwitchCase="'todayCost'">
+                <span [ngClass]="{ 'positive': getTodayCost(account) > 0, 'negative': getTodayCost(account) < 0 }">
+                  {{ getTodayCost(account) | number:'1.1-1' }}
                 </span>
               </ng-container>
               <ng-container *ngSwitchCase="'todayProfit'">
@@ -124,30 +148,6 @@
               </ng-container>
             </td>
           </ng-container>
-          <td *ngIf="isAnyActionVisible()" class="col-actions">
-            <div class="action-buttons">
-              <button *ngIf="getColumnVisibility('showRenameButton')" class="btn-secondary btn-with-icon btn-rename" (click)="openRenameModal(account); $event.stopPropagation()" [attr.aria-label]="t('rename')">
-                <span class="btn-icon">✎</span>
-                <span class="sr-only">{{ t('rename') }}</span>
-              </button>
-              <button *ngIf="getColumnVisibility('showRiskButton')" class="btn-secondary btn-with-icon btn-risk" (click)="openRiskModal(account); $event.stopPropagation()" [attr.aria-label]="t('risk')">
-                <span class="btn-icon">⚠</span>
-                <span class="sr-only">{{ t('risk') }}</span>
-              </button>
-              <button *ngIf="getColumnVisibility('showLoginButton')" class="btn-secondary btn-with-icon btn-login" (click)="openLoginModal(account); $event.stopPropagation()" [attr.aria-label]="t('login')">
-                <span class="btn-icon">🕒</span>
-                <span class="sr-only">{{ t('login') }}</span>
-              </button>
-              <button *ngIf="getColumnVisibility('showDeleteButton')" class="btn-danger btn-with-icon btn-delete-one" (click)="deleteAccount(account.id); $event.stopPropagation()" [attr.aria-label]="t('delete')">
-                <span class="btn-icon">🗑</span>
-                <span class="sr-only">{{ t('delete') }}</span>
-              </button>
-              <button *ngIf="customFields.length > 0" class="btn-secondary btn-with-icon" (click)="openEditCustomFieldsModal(account); $event.stopPropagation()" [attr.aria-label]="t('customEditInfo')">
-                <span class="btn-icon">📝</span>
-                <span class="sr-only">{{ t('customEditInfo') }}</span>
-              </button>
-            </div>
-          </td>
         </tr>
       </tbody>
     </table>

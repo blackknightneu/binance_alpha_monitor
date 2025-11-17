@@ -53,7 +53,7 @@
           <input type="number" [(ngModel)]="endBalance" (change)="updateProfitLoss()">
         </div>
         <div class="form-row">
-          <label>Lãi/Lỗ trong ngày</label>
+          <label>Chi phí ngày</label>
           <span class="info-value" [class.positive]="profitLoss > 0" [class.negative]="profitLoss < 0">
             {{ profitLoss | number:'1.2-2' }}
           </span>
@@ -76,7 +76,7 @@
     </div>
 
 <div *ngIf="selectedAccount" class="recent-panel">
-  <h4>{{ t('recentRecords') }}</h4>
+  <h4><strong>{{ t('recentRecords') }}</strong></h4>
   <table *ngIf="recentRecords.length > 0">
     <thead>
       <tr>
@@ -94,7 +94,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let r of recentRecords; let idx = index" [class.bold]="idx < 16">
+      <tr *ngFor="let r of getDisplayedRecords(); let idx = index" [class.bold]="isWithinLast15Days(r.date)">
         <td>{{ idx + 1 }}</td>
         <td>{{ r.date | date:'dd/MM' }}</td>
         <td>{{ r.startBalance | number:'1.0-1' }}</td>
@@ -108,6 +108,13 @@
       </tr>
     </tbody>
   </table>
+  
+  <div *ngIf="shouldShowViewMoreButton()" class="view-more-container" style="text-align: center; margin-top: 1rem;">
+    <button class="btn-secondary" (click)="toggleViewMore()" style="padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">
+      {{ showAllRecords ? t('showLess') : t('viewMore') }}
+    </button>
+  </div>
+  
   <div *ngIf="recentRecords.length === 0" class="no-records">{{ t('noRecords') }}</div>
 </div>
 

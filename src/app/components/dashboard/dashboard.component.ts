@@ -1,10 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountManagerComponent } from '../account-manager/account-manager.component';
 import { AccountCalendarComponent } from '../account-calendar/account-calendar.component';
 import { AccountService } from '../../services/account.service';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { Account } from '../../models/account.model';
 
@@ -20,11 +20,68 @@ import { Account } from '../../models/account.model';
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit, OnDestroy {
   selectedAccount$: Observable<Account | null>;
+  accounts: Account[] = [];
+  private subscription: Subscription = new Subscription();
+
+  // Summary data
+  summaryData = {
+    accountsWithVolume: 0,
+    totalCost: 0,
+    averageCostPer1000: 0,
+    totalProfit: 0
+  };
 
   constructor(private accountService: AccountService) {
     this.selectedAccount$ = this.accountService.getSelectedAccount();
+  }
+
+  ngOnInit(): void {
+    this.subscription.add(
+      this.accountService.getAccounts().subscribe(accounts => {
+        this.accounts = accounts;
+        this.calculateSummary();
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscription.unsubscribe();
+  }
+
+  private calculateSummary(): void {
+    // Create today's date in UTC
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    let accountsWithVolume = 0;
+    let totalCost = 0;
+    let totalVolume = 0;
+    let totalProfit = 0;
+
+    for (const account of this.accounts) {
+      const todayRecord = this.accountService.getRecordForDate(account.id, today);
+      if (todayRecord) {
+        // Count accounts with volume > 0
+        if (todayRecord.volume > 0) {
+          accountsWithVolume++;
+        }
+        // Sum costs for all accounts with records today
+        totalCost += ((todayRecord.endBalance ?? 0) - (todayRecord.startBalance ?? 0));
+        totalVolume += todayRecord.volume;
+        totalProfit += todayRecord.profit || 0;
+      }
+    }
+
+    const averageCostPer1000 = totalVolume > 0 ? (totalCost / (totalVolume / 4000)) : 0;
+
+    this.summaryData = {
+      accountsWithVolume,
+      totalCost,
+      averageCostPer1000,
+      totalProfit
+    };
   }
 
   getAlphaPoints(accountId: string | undefined): number {
