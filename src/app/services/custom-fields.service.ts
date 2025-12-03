@@ -55,14 +55,16 @@ export class CustomFieldsService {
       return;
     }
 
-    const stored = window.localStorage.getItem(this.STORAGE_KEY);
-    if (stored) {
-      try {
+    try {
+      const stored = window.localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
         const fields = JSON.parse(stored) as CustomFieldDefinition[];
         this.customFieldsSubject.next(fields);
-      } catch (error) {
-        console.warn('Failed to load custom fields', error);
       }
+    } catch (error) {
+      console.error('Failed to load custom fields from localStorage:', error);
+      // Reset to empty state if data is corrupted
+      this.customFieldsSubject.next([]);
     }
   }
 
@@ -74,7 +76,11 @@ export class CustomFieldsService {
     try {
       window.localStorage.setItem(this.STORAGE_KEY, JSON.stringify(fields));
     } catch (error) {
-      console.warn('Failed to save custom fields', error);
+      console.error('Failed to save custom fields to localStorage:', error);
+      // Handle quota exceeded error
+      if (error instanceof DOMException && error.code === 22) {
+        console.warn('localStorage quota exceeded. Consider clearing old data.');
+      }
     }
   }
 }

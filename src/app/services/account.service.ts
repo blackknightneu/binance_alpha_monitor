@@ -20,37 +20,61 @@ export class AccountService {
     private customFieldsService: CustomFieldsService
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
+    this.checkLocalStorageAvailability();
     this.loadAccounts();
+  }
+
+  private checkLocalStorageAvailability(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    try {
+      const testKey = '__localStorage_test__';
+      localStorage.setItem(testKey, 'test');
+      localStorage.removeItem(testKey);
+      console.log('localStorage is available');
+    } catch (error) {
+      console.warn('localStorage is not available:', error);
+      // Could show user notification here
+    }
   }
 
   private loadAccounts(): void {
     if (!this.isBrowser) {
       return;
     }
-    
-    const savedData = localStorage.getItem(this.STORAGE_KEY);
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      this.accounts = parsedData.map((acc: any) => ({
-        ...acc,
-        lastUpdated: new Date(acc.lastUpdated),
-        lastLogin: acc.lastLogin ? new Date(acc.lastLogin) : undefined,
-        riskDate: acc.riskDate ? new Date(acc.riskDate) : undefined,
-        pointsHistory: acc.pointsHistory.map((record: any) => ({
-          ...record,
-          date: new Date(record.date)
-        }))
-      }));
-      this.accountsSubject.next(this.accounts);
-      
-      // Load last selected account if any
-      const lastSelectedId = this.isBrowser ? localStorage.getItem('lastSelectedAccount') : null;
-      if (lastSelectedId) {
-        const lastAccount = this.accounts.find(acc => acc.id === lastSelectedId);
-        if (lastAccount) {
-          this.selectedAccountSubject.next(lastAccount);
+
+    try {
+      const savedData = localStorage.getItem(this.STORAGE_KEY);
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        this.accounts = parsedData.map((acc: any) => ({
+          ...acc,
+          lastUpdated: new Date(acc.lastUpdated),
+          lastLogin: acc.lastLogin ? new Date(acc.lastLogin) : undefined,
+          riskDate: acc.riskDate ? new Date(acc.riskDate) : undefined,
+          pointsHistory: acc.pointsHistory.map((record: any) => ({
+            ...record,
+            date: new Date(record.date)
+          }))
+        }));
+        this.accountsSubject.next(this.accounts);
+        
+        // Load last selected account if any
+        const lastSelectedId = this.isBrowser ? localStorage.getItem('lastSelectedAccount') : null;
+        if (lastSelectedId) {
+          const lastAccount = this.accounts.find(acc => acc.id === lastSelectedId);
+          if (lastAccount) {
+            this.selectedAccountSubject.next(lastAccount);
+          }
         }
       }
+    } catch (error) {
+      console.error('Failed to load accounts from localStorage:', error);
+      // Reset to empty state if data is corrupted
+      this.accounts = [];
+      this.accountsSubject.next(this.accounts);
     }
   }
 
@@ -58,7 +82,29 @@ export class AccountService {
     if (!this.isBrowser) {
       return;
     }
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.accounts));
+
+    try {
+      const dataToSave = JSON.stringify(this.accounts);
+      const dataSize = new Blob([dataToSave]).size;
+      
+      // Check if approaching localStorage limit (typically 5-10MB)
+      if (dataSize > 4 * 1024 * 1024) { // 4MB warning
+        console.warn(`localStorage data size is large: ${(dataSize / 1024 / 1024).toFixed(2)}MB`);
+      }
+      
+      localStorage.setItem(this.STORAGE_KEY, dataToSave);
+    } catch (error) {
+      console.error('Failed to save accounts to localStorage:', error);
+      // Handle quota exceeded error
+      if (error instanceof DOMException && (
+        error.code === 22 || // QUOTA_EXCEEDED_ERR
+        error.code === 1014 || // NS_ERROR_DOM_QUOTA_REACHED
+        error.name === 'QuotaExceededError'
+      )) {
+        console.error('localStorage quota exceeded. Data too large to save.');
+        // Could show user notification or implement data cleanup
+      }
+    }
   }
 
   getAccounts(): Observable<Account[]> {
@@ -145,6 +191,20 @@ export class AccountService {
     if (!account) return;
 
     account.riskDate = riskDate ?? undefined;
+    account.lastUpdated = new Date();
+
+    this.accountsSubject.next(this.accounts);
+    if (this.selectedAccountSubject.value?.id === accountId) {
+      this.selectedAccountSubject.next(account);
+    }
+    this.saveAccounts();
+  }
+
+  updateLastLogin(accountId: string, lastLogin: Date): void {
+    const account = this.accounts.find(acc => acc.id === accountId);
+    if (!account) return;
+
+    account.lastLogin = lastLogin;
     account.lastUpdated = new Date();
 
     this.accountsSubject.next(this.accounts);

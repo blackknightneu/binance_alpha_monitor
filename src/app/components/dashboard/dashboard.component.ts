@@ -43,6 +43,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     totalProfit: 0
   };
 
+  // Summary range options (days). 0 means all
+  summaryRange = 7; // default: 7 days
+  rangeOptions = [7, 15, 30, 0];
+
   // Comprehensive statistics for all accounts and all dates
   comprehensiveStats = {
     totalFee: 0,
@@ -71,8 +75,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.subscription.unsubscribe();
   }
 
-  private calculateSummary(): void {
-    // Create today's date in UTC
+  calculateSummary(): void {
+    // Calculate today's summary (unchanged behavior)
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
@@ -84,14 +88,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     for (const account of this.accounts) {
       const todayRecord = this.accountService.getRecordForDate(account.id, today);
       if (todayRecord) {
-        // Count accounts with volume > 0
-        if (todayRecord.volume > 0) {
-          accountsWithVolume++;
-        }
-        // Sum costs for all accounts with records today
+        if (todayRecord.volume > 0) accountsWithVolume++;
         totalCost += ((todayRecord.endBalance ?? 0) - (todayRecord.startBalance ?? 0));
-        totalVolume += todayRecord.volume;
-        totalProfit += todayRecord.profit || 0;
+        totalVolume += todayRecord.volume ?? 0;
+        totalProfit += todayRecord.profit ?? 0;
       }
     }
 
@@ -103,9 +103,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
       averageCostPer1000,
       totalProfit
     };
+
+    // Recompute comprehensive stats according to selected range
+    this.calculateComprehensiveStats(this.summaryRange);
   }
 
-  private calculateComprehensiveStats(): void {
+  onRangeChange(): void {
+    // Called when user changes summary range in UI
+    // Keep today's summary the same, and recompute comprehensive stats for the range
+    this.calculateSummary();
+  }
+
+  private calculateComprehensiveStats(rangeDays: number | null = null): void {
+    // rangeDays: N -> include N most recent days (including today). 0 or null means all history
+    const now = new Date();
+    const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    let cutoff: Date | null = null;
+    if (rangeDays && rangeDays > 0) {
+      cutoff = new Date(todayUTC);
+      cutoff.setUTCDate(cutoff.getUTCDate() - (rangeDays - 1));
+      cutoff.setUTCHours(0, 0, 0, 0);
+    }
+
     let totalFee = 0;
     let totalAirdrop = 0;
     let totalPnL = 0;
@@ -113,21 +132,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
     let totalVolume = 0;
 
     for (const account of this.accounts) {
-      // Get all records for this account
-      const records = account.pointsHistory;
-      
+      const records = (account.pointsHistory || []).filter(r => {
+        const rUTC = new Date(Date.UTC(r.date.getUTCFullYear(), r.date.getUTCMonth(), r.date.getUTCDate()));
+        if (!cutoff) return true;
+        return rUTC >= cutoff && rUTC <= todayUTC;
+      });
+
       for (const record of records) {
-        // Fee = endBalance - startBalance (cost paid)
         const fee = (record.endBalance ?? 0) - (record.startBalance ?? 0);
         totalFee += fee;
-        
-        // Airdrop = profit from the record
         totalAirdrop += record.profit || 0;
-        
-        // PnL = profit - fee (net profit/loss)
         totalPnL += (record.profit || 0) + fee;
-      
+        totalVolume += record.volume || 0;
       }
+
+      // Count trading days as number of unique record dates in the filtered set
+      const uniqueDays = new Set((records || []).map(r => new Date(Date.UTC(r.date.getUTCFullYear(), r.date.getUTCMonth(), r.date.getUTCDate())).getTime()));
+      totalTradingDays += uniqueDays.size;
     }
 
     const averageFeePerDay = totalTradingDays > 0 ? (totalFee / totalTradingDays) : 0;

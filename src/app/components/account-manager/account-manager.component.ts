@@ -844,8 +844,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   confirmLoginWithTime(): void {
     if (this.loginAccount && this.loginTime) {
       const loginDate = this.parseLoginTimeToDate(this.loginTime) ?? new Date();
-      this.loginAccount.lastLogin = loginDate;
-      this.accounts = this.accounts.map(acc => acc.id === this.loginAccount!.id ? { ...acc, lastLogin: loginDate } : acc);
+      this.accountService.updateLastLogin(this.loginAccount.id, loginDate);
       this.closeLoginModal();
     }
   }

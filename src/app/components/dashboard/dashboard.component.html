@@ -49,6 +49,20 @@
 
   <!-- Unified Statistics Panel -->
   <div class="unified-stats-panel">
+    <div class="stats-header">
+      <div class="stats-title">
+        <h2>Summary</h2>
+      </div>
+      <div class="stats-range">
+
+        <div class="range-group" role="radiogroup" aria-label="Summary range">
+          <label class="range-option" *ngFor="let r of rangeOptions">
+            <input type="radio" name="summaryRange" [value]="r" [(ngModel)]="summaryRange" (ngModelChange)="onRangeChange()">
+            <span class="range-text">{{ r === 0 ? 'Tất cả' : (r + ' ngày') }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
     <div class="stats-grid">
       <!-- All-time Data -->
       <div class="stat-item">

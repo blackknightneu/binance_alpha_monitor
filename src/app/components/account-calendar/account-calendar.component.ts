@@ -98,6 +98,7 @@ export class AccountCalendarComponent implements OnInit {
 
   // UI helpers
   showCustomInput = false;
+  includeProfitInStartBalance = true; // whether to add yesterday's profit to start balance
   // simple inline message for UX (toast-like)
   message = '';
   messageTimeout: any = null;
@@ -255,7 +256,7 @@ export class AccountCalendarComponent implements OnInit {
       const latestVolume = latestRecord ? (latestRecord.volume ?? 0) : 0;
       const latestEnd = latestRecord ? (latestRecord.endBalance ?? latestRecord.balance ?? last) : last;
       const latestProfit = latestRecord ? (latestRecord.profit ?? 0) : 0;
-      const newStartBalance = latestEnd + latestProfit;
+      const newStartBalance = this.includeProfitInStartBalance ? (latestEnd + latestProfit) : latestEnd;
       this.balance = latestBalanceForPoints;
       this.customBalance = latestBalanceForPoints;
       this.showCustomInput = this.balance > 0 && !this.balanceOptions.includes(this.balance);

@@ -44,6 +44,12 @@
             <option [ngValue]="-1">Tùy chỉnh...</option>
           </select>
         </div>
+        <div class="form-row checkbox-row">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="includeProfitInStartBalance">
+            <span>Cộng lợi nhuận ngày trước vào số dư đầu</span>
+          </label>
+        </div>
         <div class="form-row">
           <label>Số dư đầu ngày</label>
           <input type="number" [(ngModel)]="startBalance" (change)="updateProfitLoss()" autofocus>
