@@ -250,6 +250,9 @@ export class AccountCalendarComponent implements OnInit {
       this.updateVolumePoints();
       this.updateProfitLoss();
     } else {
+      // Reset to default (checked) for new records
+      this.includeProfitInStartBalance = true;
+      
       const last = this.accountService.getLastDayBalance(this.selectedAccount.id);
       const latestRecord = this.getLatestRecord(this.selectedAccount);
       const latestBalanceForPoints = latestRecord ? (latestRecord.balance ?? latestRecord.endBalance ?? last) : last;
@@ -270,6 +273,35 @@ export class AccountCalendarComponent implements OnInit {
       this.updateVolumePoints();
       this.profitLoss = 0;
     }
+  }
+
+  onIncludeProfitToggle(): void {
+    // When toggling the include-profit option, immediately update the suggested
+    // startBalance for the currently selected date if there's no existing record.
+    if (!this.selectedAccount) return;
+    const rec = this.accountService.getRecordForDate(this.selectedAccount.id, this.selectedDate);
+    if (rec) return; // Do not override existing records
+
+    const last = this.accountService.getLastDayBalance(this.selectedAccount.id);
+    const latestRecord = this.getLatestRecord(this.selectedAccount);
+    const latestBalanceForPoints = latestRecord ? (latestRecord.balance ?? latestRecord.endBalance ?? last) : last;
+    const latestVolume = latestRecord ? (latestRecord.volume ?? 0) : 0;
+    const latestEnd = latestRecord ? (latestRecord.endBalance ?? latestRecord.balance ?? last) : last;
+    const latestProfit = latestRecord ? (latestRecord.profit ?? 0) : 0;
+    const newStartBalance = this.includeProfitInStartBalance ? (latestEnd + latestProfit) : latestEnd;
+
+    this.balance = latestBalanceForPoints;
+    this.customBalance = latestBalanceForPoints;
+    this.showCustomInput = this.balance > 0 && !this.balanceOptions.includes(this.balance);
+
+    this.startBalance = newStartBalance;
+    this.endBalance = 0;
+    this.volume = latestVolume;
+    this.profit = 0;
+    this.deductedPoints = 0;
+    this.updateBalancePoints();
+    this.updateVolumePoints();
+    this.profitLoss = 0;
   }
 
   updateBalancePoints(): void {

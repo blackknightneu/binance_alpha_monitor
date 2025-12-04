@@ -46,7 +46,7 @@
         </div>
         <div class="form-row checkbox-row">
           <label class="checkbox-label">
-            <input type="checkbox" [(ngModel)]="includeProfitInStartBalance">
+            <input type="checkbox" [(ngModel)]="includeProfitInStartBalance" (change)="onIncludeProfitToggle()">
             <span>Cộng lợi nhuận ngày trước vào số dư đầu</span>
           </label>
         </div>
