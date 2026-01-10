@@ -12,7 +12,7 @@ export interface Account {
 export interface CustomFieldDefinition {
     id: string;
     name: string;
-    type: 'text' | 'boolean';
+    type: 'text' | 'boolean' | 'link';
     required?: boolean;
     defaultValue?: any;
 }
@@ -29,4 +29,5 @@ export interface PointsRecord {
     // optional fields for daily profit collected and any points deducted manually
     profit?: number;
     deductedPoints?: number;
+    otherExpenses?: number;
 }

@@ -1,10 +1,25 @@
 .dashboard-container {
   padding: 1rem;
 
-  h1 {
-    text-align: center;
-    color: #f0b90b;
-    margin-bottom: 1rem;
+  .header-with-range {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 0.75rem;
+
+    h1 {
+      margin: 0;
+      color: #f0b90b;
+      font-size: 1.5rem;
+    }
+
+    .range-selector-top {
+      position: absolute;
+      right: 0;
+      display: flex;
+      align-items: center;
+    }
   }
 
   .action-buttons {
@@ -113,43 +128,50 @@
 
   .unified-stats-panel {
     background: rgba(255, 255, 255, 0.95);
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+    border-radius: 12px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
     border: 1px solid rgba(148, 163, 184, 0.2);
-    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.1);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
 
     h2 {
-      margin: 0 0 1.5rem 0;
+      margin: 0 0 0.75rem 0;
       color: #0f172a;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       font-weight: 600;
       text-align: center;
     }
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.6rem;
 
       .stat-item {
         text-align: center;
-        padding: 1rem;
+        padding: 0.8rem 0.6rem;
         background: rgba(248, 250, 252, 0.8);
-        border-radius: 12px;
+        border-radius: 10px;
         border: 1px solid rgba(148, 163, 184, 0.15);
+        transition: transform 0.2s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+          background: #fff;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
 
         .stat-label {
-          font-size: 1.75rem;
+          font-size: 0.9rem;
           color: #64748b;
           margin-bottom: 0.5rem;
-          font-weight: 500;
+          font-weight: 600;
           line-height: 1.2;
         }
 
         .stat-value {
-          font-size: 2.25rem;
-          font-weight: 700;
+          font-size: 1.85rem;
+          font-weight: 800;
           color: #0f172a;
 
           &.positive {
@@ -189,10 +211,10 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(248,250,252,0.9);
+    background: rgba(248, 250, 252, 0.9);
     padding: 0.35rem 0.6rem;
     border-radius: 999px;
-    border: 1px solid rgba(148,163,184,0.12);
+    border: 1px solid rgba(148, 163, 184, 0.12);
     cursor: pointer;
     font-weight: 600;
     color: #0f172a;
@@ -211,19 +233,23 @@
   .range-option input[type="radio"]:checked {
     border-color: transparent;
     background: linear-gradient(180deg, #f0b90b, #e6a800);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   }
 
-  .range-text { font-size: 0.9rem; }
+  .range-text {
+    font-size: 0.9rem;
+  }
 
   .main-layout {
     display: flex;
-    gap: 0.5rem;
-    align-items: stretch;
+    gap: 1rem;
+    align-items: flex-start; // Changed from stretch to flex-start
+    flex-wrap: nowrap;
     flex-wrap: nowrap;
 
     .manager-panel {
       flex: 1.5;
+      min-width: 480px;
       min-width: 480px;
       display: flex;
       flex-direction: column;
@@ -236,12 +262,16 @@
       app-account-manager {
         flex: 1;
         display: flex;
+        overflow: auto; // Make account manager scrollable
       }
     }
 
     .calendar-panel {
       flex: 1;
       min-width: 420px;
+      min-width: 420px;
+      position: sticky; // Make calendar sticky
+      top: 1rem; // Stick to top with some margin
       display: flex;
       flex-direction: column;
       background: rgba(255, 255, 255, 0.95);
@@ -253,6 +283,7 @@
       app-account-calendar {
         flex: 1;
         display: flex;
+        overflow: auto; // Make calendar content scrollable if needed
       }
     }
   }
@@ -592,6 +623,39 @@
         background: #f0fdf4;
         color: #16a34a;
         border: 1px solid #bbf7d0;
+      }
+    }
+  }
+
+  // Footer
+  .dashboard-footer {
+    width: 100%;
+    margin-top: 2rem;
+    padding: 1.5rem 1rem;
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    text-align: center;
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+
+      .copyright,
+      .contact {
+        margin: 0.5rem 0;
+        color: #64748b;
+        font-size: 0.875rem;
+
+        a {
+          color: #2563eb;
+          text-decoration: none;
+          transition: color 0.2s ease;
+
+          &:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+          }
+        }
       }
     }
   }

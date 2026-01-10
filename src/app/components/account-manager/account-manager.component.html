@@ -1,41 +1,51 @@
 <div class="account-manager">
-  <div class="header">
-    <h2>{{ t('title') }}</h2>
+  <!-- Single Row Header -->
+  <div class="compact-header">
+    <div class="header-single-row">
+      <!-- Left: Title + Actions -->
+      <div class="left-section">
+        <h2>{{ t('title') }}</h2>
+        <div class="toolbar-group">
+          <button routerLink="/create-account" class="btn-toolbar btn-primary" [attr.aria-label]="t('createAccount')" title="{{ t('createAccount') }}">
+            <span class="btn-icon">+</span>
+            <span class="btn-text">{{ t('createAccount') }}</span>
+          </button>
+          <button (click)="exportData()" class="btn-toolbar" [attr.aria-label]="t('exportCsvAria')" title="{{ t('exportCsv') }}">
+            <span class="btn-icon">⇩</span>
+          </button>
+          <label class="btn-toolbar" [attr.aria-label]="t('importCsvAria')" title="{{ t('importCsv') }}">
+            <span class="btn-icon">⇪</span>
+            <input type="file" accept=".csv" (change)="importData($event)" hidden>
+          </label>
+          <button (click)="openCustomFieldsModal()" class="btn-toolbar" [attr.aria-label]="t('customManageFields')" title="{{ t('customManageFields') }}">
+            <span class="btn-icon">⚙️</span>
+          </button>
+          <button *ngIf="accounts.length > 0" class="btn-toolbar" (click)="openColumnSelector()" [attr.aria-label]="t('columnSelectorButton')" title="{{ t('columnSelectorButton') }}">
+            <span class="btn-icon">☰</span>
+          </button>
+        </div>
+        <div class="toolbar-group volume-group">
+          <label class="volume-label">Vol:</label>
+          <select [(ngModel)]="defaultVolumeSetting" class="volume-select">
+            <option *ngFor="let v of volumeOptions" [ngValue]="v">{{ v | number }}</option>
+            <option [ngValue]="-1">Custom</option>
+          </select>
+          <input *ngIf="defaultVolumeSetting === -1" type="number" [(ngModel)]="customDefaultVolume" placeholder="..." class="volume-input" />
+          <button class="btn-toolbar btn-primary" (click)="updateDefaultVolume()" title="Lưu" style="min-width: 60px;">Lưu</button>
+        </div>
+      </div>
 
-    <div class="actions">
-      <button routerLink="/create-account" class="btn-primary btn-with-icon btn-new" [attr.aria-label]="t('createAccount')">
-        <span class="btn-icon">+</span>
-        <span>{{ t('createAccount') }}</span>
-      </button>
-      <button (click)="exportData()" class="btn-ghost btn-pill" [attr.aria-label]="t('exportCsvAria')">
-        <span class="btn-icon">⇩</span>
-        <span>{{ t('exportCsv') }}</span>
-      </button>
-      <label class="btn-ghost btn-pill import-btn" [attr.aria-label]="t('importCsvAria')">
-        <span class="btn-icon">⇪</span>
-        <span>{{ t('importCsv') }}</span>
-        <input type="file" accept=".csv" (change)="importData($event)" hidden>
-      </label>
-      <button (click)="openCustomFieldsModal()" class="btn-secondary btn-pill" [attr.aria-label]="t('customManageFields')">
-        <span class="btn-icon">⚙️</span>
-        <span>{{ t('customManageFields') }}</span>
-      </button>
+      <!-- Right: Language + Column Info -->
+      <div class="right-section">
+        <div class="toolbar-group column-info" *ngIf="accounts.length > 0">
+          <span class="column-summary">{{ getColumnSummaryText() }}</span>
+        </div>
+        <button class="btn-language" (click)="toggleLanguage()" [attr.aria-label]="getLanguageToggleAriaLabel()">
+          <span class="btn-icon">🌐</span>
+          <span>{{ getLanguageToggleLabel() }}</span>
+        </button>
+      </div>
     </div>
-  </div>
-
-  <button class="btn-language-floating" (click)="toggleLanguage()" [attr.aria-label]="getLanguageToggleAriaLabel()">
-    <span class="btn-icon">🌐</span>
-    <span>{{ getLanguageToggleLabel() }}</span>
-  </button>
-
-  <p class="local-warning">{{ t('localWarning') }}</p>
-
-  <div class="column-selector" *ngIf="accounts.length > 0">
-    <button class="btn-secondary btn-with-icon btn-columns" (click)="openColumnSelector()" [attr.aria-label]="t('columnSelectorButton')">
-      <span class="btn-icon">☰</span>
-      <span class="sr-only">{{ t('columnSelectorButton') }}</span>
-    </button>
-    <span class="column-summary">{{ getColumnSummaryText() }}</span>
   </div>
 
   <div class="accounts-list">
@@ -64,6 +74,9 @@
           <td class="col-stt" data-label="STT">{{ i + 1 }}</td>
           <td *ngIf="isAnyActionVisible()" class="col-actions" data-label="Actions">
             <div class="action-buttons">
+              <button class="btn-secondary btn-with-icon btn-calendar" (click)="openCalendar(account); $event.stopPropagation()" [attr.aria-label]="'Open calendar'">
+                <span class="btn-icon">📅</span>
+              </button>
               <button *ngIf="getColumnVisibility('showRenameButton')" class="btn-secondary btn-with-icon btn-rename" (click)="openRenameModal(account); $event.stopPropagation()" [attr.aria-label]="t('rename')">
                 <span class="btn-icon">✎</span>
                 <span class="sr-only">{{ t('rename') }}</span>
@@ -106,6 +119,9 @@
                   {{ getTodayProfit(account) | number:'1.1-1' }}
                 </span>
               </ng-container>
+              <ng-container *ngSwitchCase="'todayDeducted'">
+                {{ getTodayDeducted(account) | number:'1.0-0' }}
+              </ng-container>
               <ng-container *ngSwitchCase="'todayBalancePoints'">
                 {{ getTodayBalancePoints(account) | number:'1.0-0' }}
               </ng-container>
@@ -139,11 +155,20 @@
               <ng-container *ngIf="option.id.startsWith('custom_')">
                 <ng-container *ngIf="getFieldDefinition(option.id)">
                   <ng-container *ngIf="getFieldDefinition(option.id)?.type === 'boolean'">
-                    <span *ngIf="getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '')">✓</span>
-                    <span *ngIf="!getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '')">✗</span>
+                    <ng-container [ngSwitch]="getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '')">
+                      <span *ngSwitchCase="true">✓</span>
+                      <span *ngSwitchCase="false">✗</span>
+                      <span *ngSwitchDefault></span>
+                    </ng-container>
                   </ng-container>
                   <ng-container *ngIf="getFieldDefinition(option.id)?.type === 'text'">
-                    {{ getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '') }}
+                    {{ getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '') || '' }}
+                  </ng-container>
+                  <ng-container *ngIf="getFieldDefinition(option.id)?.type === 'link'">
+                    <a *ngIf="getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '')"
+                       [href]="getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '')"
+                       target="_blank" rel="noopener noreferrer">[Link]</a>
+                    <span *ngIf="!getCustomFieldValue(account, getFieldDefinition(option.id)?.id || '')">-</span>
                   </ng-container>
                 </ng-container>
               </ng-container>
@@ -178,11 +203,11 @@
     <h3>{{ t('columnModalTitle') }}</h3>
     <div class="column-list">
       <label *ngFor="let option of columnOptions; trackBy: trackColumnOption">
-   <input type="checkbox"
-     [checked]="tempColumnVisibility[option.id]"
-     (change)="toggleTempColumn(option.id, $any($event.target).checked)" />
-        {{ getColumnLabel(option) }}
-      </label>
+     <input type="checkbox"
+       [checked]="tempColumnVisibility[option.id]"
+       (change)="toggleTempColumn(option.id, $any($event.target).checked)" />
+          <span>{{ getColumnLabel(option) }}</span>
+        </label>
     </div>
     <div class="modal-actions">
       <button class="btn-primary" (click)="confirmColumnSelection()">{{ t('confirm') }}</button>
@@ -261,6 +286,7 @@
       <select [(ngModel)]="newFieldType" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px;">
         <option value="text">{{ t('customTextType') }}</option>
         <option value="boolean">{{ t('customBooleanType') }}</option>
+        <option value="link">Link</option>
       </select>
     </div>
 
@@ -273,27 +299,28 @@
 
 <!-- Edit Custom Fields Modal -->
 <div *ngIf="showEditCustomFieldsModal" class="modal-overlay" (click)="closeEditCustomFieldsModal()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
+  <div class="modal-content edit-custom" (click)="$event.stopPropagation()">
     <h3>{{ t('customEditInfo') }} - {{ editAccount?.name }}</h3>
 
     <div *ngIf="customFields.length === 0" style="text-align: center; padding: 2rem; color: #666;">
       {{ t('customNoFieldsDefined') }}.
     </div>
 
-    <div *ngIf="customFields.length > 0" style="max-height: 400px; overflow-y: auto;">
-      <div *ngFor="let field of customFields" style="margin-bottom: 1rem;">
-        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{{ field.name }}:</label>
+    <div *ngIf="customFields.length > 0" class="edit-fields-grid">
+      <div *ngFor="let field of customFields" class="field-item">
+        
+        <ng-container *ngIf="field.type === 'text' || field.type === 'link'">
+          <label>{{ field.name }}</label>
+          <input type="text" [(ngModel)]="customFieldValues[field.id]" [placeholder]="(language === 'vi' ? 'Nhập ' : 'Enter ') + (field.name | lowercase) + '...'">
+        </ng-container>
 
-        <div *ngIf="field.type === 'text'">
-          <input type="text" [(ngModel)]="customFieldValues[field.id]" [placeholder]="(language === 'vi' ? 'Nhập ' : 'Enter ') + (field.name | lowercase) + '...'" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px;">
-        </div>
-
-        <div *ngIf="field.type === 'boolean'">
-          <label style="display: flex; align-items: center; gap: 0.5rem;">
+        <ng-container *ngIf="field.type === 'boolean'">
+          <label class="checkbox-wrapper" [class.checked]="customFieldValues[field.id]">
             <input type="checkbox" [(ngModel)]="customFieldValues[field.id]">
             <span>{{ field.name }}</span>
           </label>
-        </div>
+        </ng-container>
+
       </div>
     </div>
 
@@ -301,6 +328,15 @@
       <button class="btn-primary" (click)="saveCustomFieldValues()">{{ t('customSave') }}</button>
       <button class="btn-secondary" (click)="closeEditCustomFieldsModal()">{{ t('cancel') }}</button>
     </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast-notification" *ngIf="toastVisible" [class.error]="toastType === 'error'">
+  <div class="toast-content">
+    <span class="toast-icon" *ngIf="toastType === 'success'">✅</span>
+    <span class="toast-icon" *ngIf="toastType === 'error'">❌</span>
+    <span class="toast-message">{{ toastMessage }}</span>
   </div>
 </div>
 

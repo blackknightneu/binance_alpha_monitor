@@ -1,5 +1,6 @@
 import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { Subject } from 'rxjs';
 import { Account, PointsRecord, CustomFieldDefinition } from '../models/account.model';
 import { isPlatformBrowser } from '@angular/common';
 import { CustomFieldsService } from './custom-fields.service';
@@ -8,11 +9,14 @@ import { CustomFieldsService } from './custom-fields.service';
   providedIn: 'root'
 })
 export class AccountService {
+  private readonly DEFAULT_VOLUME_KEY = 'alpha_default_volume';
+  private readonly DEFAULT_VOLUME_FALLBACK = 32768;
   private readonly STORAGE_KEY = 'binance_alpha_accounts';
   private readonly LOGOUT_WINDOW_MS = 5 * 24 * 60 * 60 * 1000;
   private accounts: Account[] = [];
   private accountsSubject = new BehaviorSubject<Account[]>([]);
   private selectedAccountSubject = new BehaviorSubject<Account | null>(null);
+  private openCalendarSubject = new Subject<{ accountId: string; date: Date }>();
   private isBrowser: boolean;
 
   constructor(
@@ -22,6 +26,36 @@ export class AccountService {
     this.isBrowser = isPlatformBrowser(platformId);
     this.checkLocalStorageAvailability();
     this.loadAccounts();
+  }
+
+  // Expose observable to request opening calendar for an account/date
+  requestOpenCalendar(accountId: string, date: Date): void {
+    this.openCalendarSubject.next({ accountId, date });
+  }
+
+  onOpenCalendar(): Observable<{ accountId: string; date: Date }> {
+    return this.openCalendarSubject.asObservable();
+  }
+
+  getDefaultVolume(): number {
+    if (typeof window === 'undefined' || !window.localStorage) return this.DEFAULT_VOLUME_FALLBACK;
+    try {
+      const v = window.localStorage.getItem(this.DEFAULT_VOLUME_KEY);
+      if (!v) return this.DEFAULT_VOLUME_FALLBACK;
+      const parsed = Number(v);
+      return Number.isNaN(parsed) ? this.DEFAULT_VOLUME_FALLBACK : parsed;
+    } catch (error) {
+      return this.DEFAULT_VOLUME_FALLBACK;
+    }
+  }
+
+  setDefaultVolume(value: number): void {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      window.localStorage.setItem(this.DEFAULT_VOLUME_KEY, String(value));
+    } catch (error) {
+      console.warn('Failed to save default volume', error);
+    }
   }
 
   private checkLocalStorageAvailability(): void {
@@ -243,7 +277,7 @@ export class AccountService {
   /**
    * Set or update a daily record for a specific date. This allows the calendar to save entries
    */
-  setRecordForDate(accountId: string, date: Date, startBalance: number, endBalance: number, volume: number, balance: number = 0, profit: number = 0, deductedPoints: number = 0): void {
+  setRecordForDate(accountId: string, date: Date, startBalance: number, endBalance: number, volume: number, balance: number = 0, profit: number = 0, deductedPoints: number = 0, otherExpenses: number = 0): void {
     const account = this.accounts.find(acc => acc.id === accountId);
     if (!account) return;
 
@@ -256,12 +290,13 @@ export class AccountService {
     const balancePoints = balance > 0 ? this.calculateBalancePoints(balance) : 0;
     const volumePoints = this.calculateVolumePoints(volume);
 
-    if (existing) {
+      if (existing) {
       existing.startBalance = startBalance;
       existing.endBalance = endBalance;
       existing.volume = volume;
       existing.profit = profit;
       existing.deductedPoints = deductedPoints;
+      existing.otherExpenses = otherExpenses;
       existing.balance = balance;
       existing.balancePoints = balancePoints;
       existing.volumePoints = volumePoints;
@@ -277,7 +312,8 @@ export class AccountService {
         totalPoints: balancePoints + volumePoints - (deductedPoints || 0),
         volume,
         profit,
-        deductedPoints
+        deductedPoints,
+        otherExpenses
       };
       account.pointsHistory.push(newRecord);
     }
@@ -372,7 +408,7 @@ export class AccountService {
   exportAllToCsv(): string {
     const customFields = this.customFieldsService.getCustomFields();
     const customFieldHeaders = customFields.map(field => field.name);
-    const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','Bonus', ...customFieldHeaders];
+    const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','OtherExpenses','Bonus', ...customFieldHeaders];
     const rows: string[] = [header.join(',')];
 
     for (const acc of this.accounts) {
@@ -389,7 +425,7 @@ export class AccountService {
           }
           return this.escapeCsv(String(value ?? ''));
         });
-        const cols = [
+          const cols = [
           this.escapeCsv(acc.name),
           riskDate ? this.formatIsoDate(riskDate) : '',
           lastLogin ? this.formatIsoDateTime(lastLogin) : '',
@@ -403,6 +439,7 @@ export class AccountService {
           this.numOrEmpty(r.volumePoints),
           this.numOrEmpty(r.profit ?? 0),
           this.numOrEmpty(r.deductedPoints ?? 0),
+          this.numOrEmpty(r.otherExpenses ?? 0),
           ...customFieldValues
         ];
         rows.push(cols.join(','));
@@ -417,7 +454,7 @@ export class AccountService {
     if (!account) return '';
     const customFields = this.customFieldsService.getCustomFields();
     const customFieldHeaders = customFields.map(field => field.name);
-    const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','Bonus', ...customFieldHeaders];
+    const header = ['AccountName','RiskDate','LastLogin','LogoutDeadline','Date','Start','End','Balance','BalancePoints','Volume','VolumePoints','Profit','Deducted','OtherExpenses','Bonus', ...customFieldHeaders];
     const rows: string[] = [header.join(',')];
     const recs = [...account.pointsHistory].sort((a,b)=>a.date.getTime()-b.date.getTime());
     for (const r of recs) {
@@ -445,6 +482,7 @@ export class AccountService {
         this.numOrEmpty(r.volumePoints),
         this.numOrEmpty(r.profit ?? 0),
         this.numOrEmpty(r.deductedPoints ?? 0),
+        this.numOrEmpty(r.otherExpenses ?? 0),
         ...customFieldValues
       ];
       rows.push(cols.join(','));

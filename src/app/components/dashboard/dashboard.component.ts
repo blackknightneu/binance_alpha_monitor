@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AccountManagerComponent } from '../account-manager/account-manager.component';
 import { AccountCalendarComponent } from '../account-calendar/account-calendar.component';
 import { AccountService } from '../../services/account.service';
+import { RangeService } from '../../services/range.service';
 import { Observable, Subscription } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { Account } from '../../models/account.model';
@@ -57,16 +58,31 @@ export class DashboardComponent implements OnInit, OnDestroy {
     averageFeePerDay: 0
   };
 
-  constructor(private accountService: AccountService, private customFieldsService: CustomFieldsService) {
+  constructor(
+    private accountService: AccountService,
+    private customFieldsService: CustomFieldsService,
+    private rangeService: RangeService
+  ) {
     this.selectedAccount$ = this.accountService.getSelectedAccount();
   }
 
   ngOnInit(): void {
+    // Initialize summaryRange from RangeService
+    this.summaryRange = this.rangeService.getCurrentRangeDays();
+
     this.subscription.add(
       this.accountService.getAccounts().subscribe(accounts => {
         this.accounts = accounts;
+        // Calculate today's summary and comprehensive stats using the configured default range
         this.calculateSummary();
-        this.calculateComprehensiveStats();
+      })
+    );
+
+    // Subscribe to range changes from RangeService
+    this.subscription.add(
+      this.rangeService.getRangeDays().subscribe(days => {
+        this.summaryRange = days;
+        this.calculateSummary();
       })
     );
   }
@@ -89,7 +105,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const todayRecord = this.accountService.getRecordForDate(account.id, today);
       if (todayRecord) {
         if (todayRecord.volume > 0) accountsWithVolume++;
-        totalCost += ((todayRecord.endBalance ?? 0) - (todayRecord.startBalance ?? 0));
+        const todayFee = ((todayRecord.endBalance ?? 0) - (todayRecord.startBalance ?? 0));
+        const todayOther = todayRecord.otherExpenses ?? 0;
+        totalCost += (todayFee + todayOther);
         totalVolume += todayRecord.volume ?? 0;
         totalProfit += todayRecord.profit ?? 0;
       }
@@ -110,6 +128,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   onRangeChange(): void {
     // Called when user changes summary range in UI
+    // Update RangeService so AccountManager can also use this value
+    this.rangeService.setRangeDays(this.summaryRange);
     // Keep today's summary the same, and recompute comprehensive stats for the range
     this.calculateSummary();
   }
@@ -140,9 +160,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       for (const record of records) {
         const fee = (record.endBalance ?? 0) - (record.startBalance ?? 0);
-        totalFee += fee;
+        const other = record.otherExpenses ?? 0;
+        totalFee += (fee + other);
         totalAirdrop += record.profit || 0;
-        totalPnL += (record.profit || 0) + fee;
+        // PnL = profit + fee - otherExpenses
+        totalPnL += (record.profit || 0) + fee - other;
         totalVolume += record.volume || 0;
       }
 
@@ -181,7 +203,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${acc.name.replace(/\s+/g,'_') || 'account'}_${acc.id}.json`;
+      a.download = `${acc.name.replace(/\s+/g, '_') || 'account'}_${acc.id}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -197,7 +219,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${acc.name.replace(/\s+/g,'_') || 'account'}_${acc.id}.csv`;
+      a.download = `${acc.name.replace(/\s+/g, '_') || 'account'}_${acc.id}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -261,7 +283,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.syncError = false;
 
       // Make API call to get data from server
-  const response = await fetch(`https://binancealphaapi.vercel.app/api/data?apiKey=${apiKey}`, {
+      const response = await fetch(`https://binancealphaapi.vercel.app/api/data?apiKey=${apiKey}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -282,10 +304,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       // Update local storage with server data
       if (result.success && result.data && result.data.bodyData) {
         const bodyData = result.data.bodyData;
-        
+
         if (bodyData.accounts && Array.isArray(bodyData.accounts)) {
           console.log('Updating accounts from server:', bodyData.accounts.length, 'accounts');
-          
+
           // Convert date strings to Date objects
           const processedAccounts = bodyData.accounts.map((account: any) => ({
             ...account,
@@ -295,27 +317,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
               date: record.date ? new Date(record.date) : new Date()
             })) : []
           }));
-          
+
           // Update accounts in localStorage
           localStorage.setItem('binance_alpha_accounts', JSON.stringify(processedAccounts));
-          
+
           // Update service's BehaviorSubject directly to trigger change detection
           this.accountService['accountsSubject'].next(processedAccounts);
-          
+
           // Update local component state
           this.accounts = [...processedAccounts];
-          
+
           console.log('Accounts updated successfully, new count:', this.accounts.length);
         }
 
         if (bodyData.customFields && Array.isArray(bodyData.customFields)) {
           console.log('Updating custom fields from server:', bodyData.customFields.length, 'fields');
-          
+
           // Update custom fields in localStorage and service
           localStorage.setItem('custom-field-definitions', JSON.stringify(bodyData.customFields));
           // Update the service's BehaviorSubject directly
           this.customFieldsService['customFieldsSubject'].next(bodyData.customFields);
-          
+
           console.log('Custom fields updated successfully');
         }
 
@@ -333,7 +355,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     } catch (error: any) {
       console.error('Sync from server error:', error);
       this.syncMessage = 'Lỗi tải dữ liệu từ server: ' + (error.message || 'Unknown error');
-      this.syncError = true; 
+      this.syncError = true;
     }
   }
 
@@ -377,14 +399,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
         pointsHistory: account.pointsHistory || []
       }));
       const customFieldsData = this.customFieldsService.getCustomFields();
-      
+
       // Calculate total point history records
-      const totalPointHistoryRecords = accountsData.reduce((sum, account) => 
+      const totalPointHistoryRecords = accountsData.reduce((sum, account) =>
         sum + (account.pointsHistory?.length || 0), 0);
-      
+
       this.syncMessage = `Đang đồng bộ dữ liệu... (Upload ${accountsData.length} tài khoản, ${totalPointHistoryRecords} point records)`;
       this.syncError = false;
-      
+
       const bodyData = {
         accounts: accountsData,
         customFields: customFieldsData,
@@ -414,14 +436,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
 
       const result = await response.json();
-      
+
       // Calculate actual uploaded point history records
-      const actualPointHistoryRecords = accountsData.reduce((sum, account) => 
+      const actualPointHistoryRecords = accountsData.reduce((sum, account) =>
         sum + (account.pointsHistory?.length || 0), 0);
-      
+
       this.syncMessage = `Đồng bộ thành công! Đã upload ${accountsData.length} tài khoản, ${actualPointHistoryRecords} point records và ${customFieldsData.length} trường tùy chỉnh`;
       this.syncError = false;
-      
+
       // Show success message briefly
       setTimeout(() => {
         this.syncMessage = '';
@@ -431,7 +453,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       console.error('Sync error:', error);
       this.syncMessage = 'Lỗi đồng bộ: ' + (error.message || 'Unknown error');
       this.syncError = true;
-      
+
       // Clear API key if authentication failed
       if (error.message.includes('401') || error.message.includes('auth')) {
         localStorage.removeItem('sync_api_key');

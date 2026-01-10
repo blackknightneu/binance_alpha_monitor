@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AccountService } from '../../services/account.service';
 import { LanguageService, Language } from '../../services/language.service';
 import { CustomFieldsService } from '../../services/custom-fields.service';
+import { RangeService } from '../../services/range.service';
 import { Account, PointsRecord, CustomFieldDefinition } from '../../models/account.model';
 import { FormsModule } from '@angular/forms';
 
@@ -88,12 +89,32 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     return this.languageService.currentLanguage();
   }
 
+  // Toast Notification
+  toastVisible = false;
+  toastMessage = '';
+  toastType: 'success' | 'error' = 'success';
+  private toastTimeout: any;
+
+  showToast(message: string, type: 'success' | 'error' = 'success') {
+    this.toastMessage = message;
+    this.toastType = type;
+    this.toastVisible = true;
+    this.cdr.detectChanges();
+
+    if (this.toastTimeout) clearTimeout(this.toastTimeout);
+
+    this.toastTimeout = setTimeout(() => {
+      this.toastVisible = false;
+      this.cdr.detectChanges();
+    }, 3000);
+  }
+
   // Custom Fields
   customFields: CustomFieldDefinition[] = [];
   showCustomFieldsModal = false;
   showAddFieldModal = false;
   newFieldName = '';
-  newFieldType: 'text' | 'boolean' = 'text';
+  newFieldType: 'text' | 'boolean' | 'link' = 'text';
   editingField: CustomFieldDefinition | null = null;
   showEditCustomFieldsModal = false;
   editAccount: Account | null = null;
@@ -103,9 +124,9 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     vi: {
       title: 'Quản lý tài khoản',
       createAccount: 'Tạo',
-            exportCsv: 'Xuất',
+      exportCsv: 'Xuất',
       exportCsvAria: 'Tải xuống CSV',
-            importCsv: 'Tải lên',
+      importCsv: 'Tải lên',
       importCsvAria: 'Tải lên CSV',
       localWarning: 'Dữ liệu chỉ lưu trên trình duyệt của bạn. Nếu muốn sử dụng ở trình duyệt hoặc máy khác, vui lòng export dữ liệu và import lại.',
       columnSelectorButton: 'Chọn tùy chọn hiển thị',
@@ -139,8 +160,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       riskDateInvalid: 'Ngày không hợp lệ',
       languageEnglish: 'English',
       languageVietnamese: 'Tiếng Việt',
-  switchToEnglish: 'Chuyển sang tiếng Anh',
-  switchToVietnamese: 'Chuyển sang tiếng Việt',
+      switchToEnglish: 'Chuyển sang tiếng Anh',
+      switchToVietnamese: 'Chuyển sang tiếng Việt',
       customManageFields: 'Quản lý thông tin thêm',
       customAddNewField: 'Thêm trường mới',
       customFieldName: 'Tên trường',
@@ -191,8 +212,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       riskDateInvalid: 'Invalid date',
       languageEnglish: 'English',
       languageVietnamese: 'Vietnamese',
-  switchToEnglish: 'Switch to English',
-  switchToVietnamese: 'Switch to Vietnamese',
+      switchToEnglish: 'Switch to English',
+      switchToVietnamese: 'Switch to Vietnamese',
       customManageFields: 'Manage Additional Information',
       customAddNewField: 'Add New Field',
       customFieldName: 'Field Name',
@@ -230,6 +251,15 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       labels: {
         vi: 'Airdrop',
         en: "Airdrop"
+      },
+      visible: true,
+      width: '120px'
+    },
+    {
+      id: 'todayDeducted',
+      labels: {
+        vi: 'Điểm trừ hôm nay',
+        en: 'Deducted (today)'
       },
       visible: true,
       width: '120px'
@@ -309,8 +339,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     {
       id: 'totalPnL',
       labels: {
-        vi: 'Tổng PnL từ trước',
-        en: 'Total PnL'
+        vi: 'PnL',
+        en: 'PnL'
       },
       visible: true,
       width: '120px'
@@ -363,6 +393,15 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
 
   showColumnSelector = false;
   tempColumnVisibility: Record<string, boolean> = {};
+  defaultVolumeSetting: number | null = null;
+  volumeOptions: number[] = [];
+  customDefaultVolume: number | null = null;
+  // PnL range: managed by RangeService
+  private _pnlRangeDays: number = 7;
+
+  get pnlRangeDays(): number {
+    return this._pnlRangeDays;
+  }
 
   trackColumnOption(index: number, option: ColumnOption): string {
     return option.id;
@@ -378,9 +417,9 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
 
   isAnyActionVisible(): boolean {
     return this.getColumnVisibility('showRenameButton') ||
-           this.getColumnVisibility('showRiskButton') ||
-           this.getColumnVisibility('showLoginButton') ||
-           this.getColumnVisibility('showDeleteButton');
+      this.getColumnVisibility('showRiskButton') ||
+      this.getColumnVisibility('showLoginButton') ||
+      this.getColumnVisibility('showDeleteButton');
   }
 
   openColumnSelector(): void {
@@ -484,7 +523,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       return true;
     }
     const todayUTC = new Date();
-    todayUTC.setUTCHours(0,0,0,0);
+    todayUTC.setUTCHours(0, 0, 0, 0);
     const todayRecord = this.getOrCreateRecord(account, todayUTC);
     // Nếu todayRecord là record tạo mới (không có trong pointsHistory), volume = 0
     return !account.pointsHistory.some(r => {
@@ -493,13 +532,27 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     }) || !todayRecord || todayRecord.volume === 0;
   }
 
-  constructor(public accountService: AccountService, private languageService: LanguageService, private customFieldsService: CustomFieldsService) {}
+  constructor(
+    public accountService: AccountService,
+    private languageService: LanguageService,
+    private customFieldsService: CustomFieldsService,
+    private cdr: ChangeDetectorRef,
+    private rangeService: RangeService
+  ) { }
 
   ngOnInit(): void {
     this.loadColumnVisibility();
     this.accountService.getAccounts().subscribe(accounts => {
       this.accounts = accounts;
     });
+
+    this.buildVolumeOptions();
+    // load default volume setting
+    this.defaultVolumeSetting = this.accountService.getDefaultVolume();
+    if (!this.volumeOptions.includes(this.defaultVolumeSetting || 0)) {
+      this.customDefaultVolume = this.defaultVolumeSetting || null;
+      this.defaultVolumeSetting = -1;
+    }
 
     this.accountService.getSelectedAccount().subscribe(account => {
       this.selectedAccount = account;
@@ -511,7 +564,39 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       this.updateColumnOptionsForCustomFields();
     });
 
+    // Subscribe to range changes from RangeService
+    this.rangeService.getRangeDays().subscribe(days => {
+      this._pnlRangeDays = days;
+      this.cdr.detectChanges();
+    });
+
     // Xóa interval cập nhật countdown logout
+  }
+
+  updateDefaultVolume(): void {
+    let v: number | null = null;
+    if (this.defaultVolumeSetting === -1) {
+      v = Number(this.customDefaultVolume) || 0;
+    } else {
+      v = Number(this.defaultVolumeSetting) || 0;
+    }
+    if (v == null || Number.isNaN(v) || v <= 0) return;
+    this.accountService.setDefaultVolume(v);
+    this.defaultVolumeSetting = v;
+    this.customDefaultVolume = null;
+    this.showToast(this.language === 'en' ? 'Default volume updated' : 'Đã lưu cài đặt Vol');
+  }
+
+  private buildVolumeOptions(): void {
+    const opts: number[] = [];
+    let v = 1024;
+    const limit = 2097152; // ~2 million
+    while (v <= limit) {
+      opts.push(v);
+      v *= 2;
+    }
+    if (opts[opts.length - 1] !== limit) opts.push(limit);
+    this.volumeOptions = opts;
   }
 
   // Custom Fields Management
@@ -547,6 +632,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     });
 
     this.closeAddFieldModal();
+    this.showToast(this.language === 'en' ? 'Field added successfully' : 'Đã thêm trường mới');
   }
 
   editCustomField(field: CustomFieldDefinition): void {
@@ -583,10 +669,13 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
 
     this.accountService.updateAccount(updatedAccount);
     this.closeEditCustomFieldsModal();
+    this.showToast(this.language === 'en' ? 'Information updated' : 'Đã cập nhật thông tin');
   }
 
   getCustomFieldValue(account: Account, fieldId: string): any {
-    return account.customFields?.[fieldId] ?? '';
+    // Return actual value without defaulting to empty string
+    // This allows ngSwitch to distinguish between true, false, and undefined
+    return account.customFields?.[fieldId];
   }
 
   getFieldDefinition(columnId: string): CustomFieldDefinition | undefined {
@@ -596,17 +685,31 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   }
 
   private updateColumnOptionsForCustomFields(): void {
+    // Load saved visibilitythu settings from localStorage
+    let savedVisibility: Record<string, boolean> = {};
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = window.localStorage.getItem(this.COLUMN_STORAGE_KEY);
+      if (stored) {
+        try {
+          savedVisibility = JSON.parse(stored) as Record<string, boolean>;
+        } catch (error) {
+          console.warn('Failed to parse saved column visibility', error);
+        }
+      }
+    }
+
     // Remove existing custom field columns
     this.columnOptions = this.columnOptions.filter(option => !option.id.startsWith('custom_'));
 
-    // Add new custom field columns
+    // Add new custom field columns with saved visibility
     const customFieldColumns: ColumnOption[] = this.customFields.map(field => ({
       id: `custom_${field.id}`,
       labels: {
         vi: field.name,
         en: field.name
       },
-      visible: true,
+      // Use saved visibility if available, otherwise default to true
+      visible: savedVisibility[`custom_${field.id}`] ?? true,
       width: '120px'
     }));
 
@@ -648,6 +751,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
           return (this.getTodayCost(a) - this.getTodayCost(b)) * dir;
         case 'todayProfit':
           return (this.getTodayProfit(a) - this.getTodayProfit(b)) * dir;
+        case 'todayDeducted':
+          return (this.getTodayDeducted(a) - this.getTodayDeducted(b)) * dir;
         case 'todayBalancePoints':
           return (this.getTodayBalancePoints(a) - this.getTodayBalancePoints(b)) * dir;
         case 'todayEndBalance':
@@ -670,8 +775,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
           return (this.getTotalPnL(a) - this.getTotalPnL(b)) * dir;
         case 'logoutCountdown':
           // Sort by ms left to logout
-          const msA = a.lastLogin ? (new Date(a.lastLogin).getTime() + 5*24*60*60*1000 - new Date().getTime()) : -Infinity;
-          const msB = b.lastLogin ? (new Date(b.lastLogin).getTime() + 5*24*60*60*1000 - new Date().getTime()) : -Infinity;
+          const msA = a.lastLogin ? (new Date(a.lastLogin).getTime() + 5 * 24 * 60 * 60 * 1000 - new Date().getTime()) : -Infinity;
+          const msB = b.lastLogin ? (new Date(b.lastLogin).getTime() + 5 * 24 * 60 * 60 * 1000 - new Date().getTime()) : -Infinity;
           return (msA - msB) * dir;
         default:
           // Handle custom fields sorting
@@ -692,12 +797,13 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
           return 0;
       }
     });
-  return accounts;
+    return accounts;
   }
 
   deleteAccount(accountId: string): void {
     if (confirm(this.t('confirmDeleteAccount'))) {
       this.accountService.deleteAccount(accountId);
+      this.showToast(this.language === 'en' ? 'Account deleted' : 'Đã xóa tài khoản');
     }
   }
 
@@ -705,13 +811,25 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     this.accountService.selectAccount(accountId);
   }
 
+  openCalendar(account: Account): void {
+    // Select the account then scroll the dashboard calendar into view
+    this.accountService.selectAccount(account.id);
+    setTimeout(() => {
+      const el = document.getElementById('dashboard-calendar');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+    // Request calendar component to open editor for today for this account
+    const today = new Date();
+    this.accountService.requestOpenCalendar(account.id, new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())));
+  }
+
   // Điểm hôm nay: sum D-15 đến D-1
   getTodayPoints(account: Account): number {
     if (!account || !account.pointsHistory || account.pointsHistory.length === 0) return 0;
     const today = new Date();
-    today.setUTCHours(0,0,0,0);
-    const d1 = new Date(today); d1.setUTCDate(today.getUTCDate()-1);
-    const d15 = new Date(today); d15.setUTCDate(today.getUTCDate()-15);
+    today.setUTCHours(0, 0, 0, 0);
+    const d1 = new Date(today); d1.setUTCDate(today.getUTCDate() - 1);
+    const d15 = new Date(today); d15.setUTCDate(today.getUTCDate() - 15);
     return account.pointsHistory
       .filter(r => {
         const rUTC = new Date(Date.UTC(r.date.getUTCFullYear(), r.date.getUTCMonth(), r.date.getUTCDate()));
@@ -724,8 +842,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   getTomorrowPoints(account: Account): number {
     if (!account || !account.pointsHistory || account.pointsHistory.length === 0) return 0;
     const today = new Date();
-    today.setUTCHours(0,0,0,0);
-    const d14 = new Date(today); d14.setUTCDate(today.getUTCDate()-14);
+    today.setUTCHours(0, 0, 0, 0);
+    const d14 = new Date(today); d14.setUTCDate(today.getUTCDate() - 14);
     return account.pointsHistory
       .filter(r => {
         const rUTC = new Date(Date.UTC(r.date.getUTCFullYear(), r.date.getUTCMonth(), r.date.getUTCDate()));
@@ -751,7 +869,8 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     });
     if (prevRecord) {
       const defaultBalance = prevRecord.endBalance ?? prevRecord.balance ?? 1000;
-      const defaultVolume = prevRecord.volume ?? 32768;
+      const parsedPrevVol = Number(prevRecord.volume);
+      const defaultVolume = !Number.isNaN(parsedPrevVol) ? parsedPrevVol : this.accountService.getDefaultVolume();
       return {
         date: dateUTC,
         balance: defaultBalance,
@@ -771,7 +890,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       balance: 1000,
       startBalance: 1000,
       endBalance: 1000,
-      volume: 32768,
+      volume: this.accountService.getDefaultVolume(),
       volumePoints: 0,
       balancePoints: 0,
       totalPoints: 0,
@@ -783,8 +902,10 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   // Sử dụng cho các trường hợp cần lấy dữ liệu ngày hôm nay
   getTodayTradeVolume(account: Account): number {
     if (!account || !account.pointsHistory) return 0;
-    const todayRecord = this.getTodayRecord(account);
-    return todayRecord ? todayRecord.volume : 0;
+    const todayUTC = new Date();
+    todayUTC.setUTCHours(0, 0, 0, 0);
+    const todayRecord = this.getOrCreateRecord(account, todayUTC);
+    return todayRecord?.volume ?? 0;
   }
   getTodayVolumePoints(account: Account): number {
     return this.getTodayRecord(account)?.volumePoints ?? 0;
@@ -792,7 +913,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   getTodayBalance(account: Account): number {
     if (!account || !account.pointsHistory) return 0;
     const todayUTC = new Date();
-    todayUTC.setUTCHours(0,0,0,0);
+    todayUTC.setUTCHours(0, 0, 0, 0);
     const todayRecord = this.getOrCreateRecord(account, todayUTC);
     return todayRecord?.balance ?? 0;
   }
@@ -802,7 +923,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
   getTodayStartBalance(account: Account): number {
     if (!account || !account.pointsHistory) return 0;
     const todayUTC = new Date();
-    todayUTC.setUTCHours(0,0,0,0);
+    todayUTC.setUTCHours(0, 0, 0, 0);
     const todayRecord = this.getOrCreateRecord(account, todayUTC);
     return todayRecord?.startBalance ?? 0;
   }
@@ -820,16 +941,48 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     return todayRecord?.profit ?? 0;
   }
 
+  getTodayDeducted(account: Account): number {
+    const todayRecord = this.getTodayRecord(account);
+    return todayRecord?.deductedPoints ?? 0;
+  }
+
   getTotalPnL(account: Account): number {
-    if (!account || !account.pointsHistory) return 0;
-    return account.pointsHistory.reduce((sum, record) => {
+    if (!account || !account.pointsHistory || account.pointsHistory.length === 0) return 0;
+
+    if (!this.pnlRangeDays || this.pnlRangeDays <= 0) {
+      const value = account.pointsHistory.reduce((sum, record) => {
+        const rawDate = record.date instanceof Date ? record.date : new Date(record.date as any);
+        const start = record.startBalance ?? 0;
+        const end = record.endBalance ?? record.balance ?? 0;
+        const profit = record.profit ?? 0;
+        const deducted = record.deductedPoints ?? 0;
+        const other = record.otherExpenses ?? 0;
+        const dailyPnL = (end - start) + profit - deducted - other;
+        return sum + dailyPnL;
+      }, 0);
+      // console.log('getTotalPnL for', account.id, 'range', this.pnlRangeDays, 'value', value);
+      return value;
+    }
+
+    const todayUTC = new Date();
+    todayUTC.setUTCHours(0, 0, 0, 0);
+    const cutoff = new Date(todayUTC);
+    cutoff.setUTCDate(cutoff.getUTCDate() - (this.pnlRangeDays - 1));
+
+    const value = account.pointsHistory.reduce((sum, record) => {
+      const rawDate = record.date instanceof Date ? record.date : new Date(record.date as any);
+      const recDate = new Date(Date.UTC(rawDate.getUTCFullYear(), rawDate.getUTCMonth(), rawDate.getUTCDate()));
+      if (recDate.getTime() < cutoff.getTime() || recDate.getTime() > todayUTC.getTime()) return sum;
       const start = record.startBalance ?? 0;
       const end = record.endBalance ?? record.balance ?? 0;
       const profit = record.profit ?? 0;
       const deducted = record.deductedPoints ?? 0;
-      const dailyPnL = (end - start) + profit - deducted;
+      const other = record.otherExpenses ?? 0;
+      const dailyPnL = (end - start) + profit - deducted - other;
       return sum + dailyPnL;
     }, 0);
+    // console.log('getTotalPnL for', account.id, 'range', this.pnlRangeDays, 'value', value);
+    return value;
   }
 
   getLatestEndBalance(account: Account): number {
@@ -846,6 +999,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       const loginDate = this.parseLoginTimeToDate(this.loginTime) ?? new Date();
       this.accountService.updateLastLogin(this.loginAccount.id, loginDate);
       this.closeLoginModal();
+      this.showToast(this.language === 'en' ? 'Login time logged' : 'Đã ghi nhận thời gian Login');
     }
   }
 
@@ -883,6 +1037,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       this.selectedAccount = { ...this.selectedAccount, name: trimmedName };
     }
     this.closeRenameModal();
+    this.showToast(this.language === 'en' ? 'Account renamed' : 'Đã đổi tên tài khoản');
   }
 
   closeRenameModal(): void {
@@ -917,6 +1072,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       this.selectedAccount = { ...this.selectedAccount, riskDate: parsed };
     }
     this.closeRiskModal();
+    this.showToast(this.language === 'en' ? 'Risk date updated' : 'Đã cập nhật ngày Risk');
   }
 
   clearRiskDate(): void {
@@ -954,7 +1110,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     }
     const days = this.getRiskDays(account);
     const dateText = this.formatDateForDisplay(account.riskDate);
-  const suffix = this.language === 'en' ? (days === 1 ? 'day' : this.t('daysSuffix')) : this.t('daysSuffix');
+    const suffix = this.language === 'en' ? (days === 1 ? 'day' : this.t('daysSuffix')) : this.t('daysSuffix');
     return `${dateText} (${days} ${suffix})`;
   }
 

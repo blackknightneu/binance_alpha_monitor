@@ -72,6 +72,10 @@
           <label>Điểm trừ</label>
           <input type="number" [(ngModel)]="deductedPoints">
         </div>
+        <div class="form-row">
+          <label>Chi phí khác (USD)</label>
+          <input type="number" [(ngModel)]="otherExpenses">
+        </div>
         <div class="actions">
           <button class="btn-primary" (click)="saveForDate()">Lưu</button>
           <button class="btn-secondary" (click)="editorVisible=false">Đóng</button>

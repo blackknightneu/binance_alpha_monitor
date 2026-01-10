@@ -1,19 +1,15 @@
 <div class="dashboard-container">
-  <h1>Binance Alpha Dashboard</h1>
-
-  <!-- Action Buttons -->
-  <div class="action-buttons">
-    <button (click)="syncToServer()" class="btn-primary btn-with-icon">
-      <span class="btn-icon">⬆️</span>
-      <span>Tải lên Server</span>
-    </button>
-    <button (click)="syncFromServer()" class="btn-primary btn-with-icon">
-      <span class="btn-icon">⬇️</span>
-      <span>Tải xuống từ Server</span>
-    </button>
-    <button (click)="editApiKey()" class="btn-secondary btn-small">
-      <span>🔑 Edit API Key</span>
-    </button>
+  <!-- Header with Range Selector -->
+  <div class="header-with-range">
+    <h1>Binance Alpha Dashboard</h1>
+    <div class="range-selector-top">
+      <div class="range-group" role="radiogroup" aria-label="Summary range">
+        <label class="range-option" *ngFor="let r of rangeOptions">
+          <input type="radio" name="summaryRange" [value]="r" [(ngModel)]="summaryRange" (ngModelChange)="onRangeChange()">
+          <span class="range-text">{{ r === 0 ? 'Tất cả' : (r + ' ngày') }}</span>
+        </label>
+      </div>
+    </div>
   </div>
 
   <!-- API Key Modal -->
@@ -49,20 +45,6 @@
 
   <!-- Unified Statistics Panel -->
   <div class="unified-stats-panel">
-    <div class="stats-header">
-      <div class="stats-title">
-        <h2>Summary</h2>
-      </div>
-      <div class="stats-range">
-
-        <div class="range-group" role="radiogroup" aria-label="Summary range">
-          <label class="range-option" *ngFor="let r of rangeOptions">
-            <input type="radio" name="summaryRange" [value]="r" [(ngModel)]="summaryRange" (ngModelChange)="onRangeChange()">
-            <span class="range-text">{{ r === 0 ? 'Tất cả' : (r + ' ngày') }}</span>
-          </label>
-        </div>
-      </div>
-    </div>
     <div class="stats-grid">
       <!-- All-time Data -->
       <div class="stat-item">
@@ -113,7 +95,7 @@
     <div class="manager-panel">
       <app-account-manager></app-account-manager>
     </div>
-    <div class="calendar-panel">
+    <div class="calendar-panel" id="dashboard-calendar">
       <app-account-calendar></app-account-calendar>
     </div>
   </div>

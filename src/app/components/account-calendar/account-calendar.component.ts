@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountService } from '../../services/account.service';
 import { LanguageService, Language } from '../../services/language.service';
 import { Account, PointsRecord } from '../../models/account.model';
+import { Subscription } from 'rxjs';
 import { GroupByMonthPipe } from '../../pipes/group-by-month.pipe';
 
 interface TextBundle {
@@ -36,7 +37,7 @@ interface CalendarDay {
   templateUrl: './account-calendar.component.html',
   styleUrls: ['./account-calendar.component.scss']
 })
-export class AccountCalendarComponent implements OnInit {
+export class AccountCalendarComponent implements OnInit, OnDestroy {
   selectedAccount: Account | null = null;
   viewYear = new Date().getFullYear();
   viewMonth = new Date().getMonth(); // 0-indexed
@@ -52,6 +53,7 @@ export class AccountCalendarComponent implements OnInit {
   volume = 0;
   profit = 0;           // daily profit collected
   deductedPoints = 0;   // manual point deductions for the day
+  otherExpenses = 0;    // other expenses (chi phí khác)
   
   // Points calculation fields
   calculatedBalancePoints = 0;
@@ -63,6 +65,9 @@ export class AccountCalendarComponent implements OnInit {
 
   // whether the editor panel is visible (opened when user clicks a day)
   editorVisible = false;
+
+  private subscription: Subscription = new Subscription();
+  private pendingOpenRequest: { accountId: string; date: Date } | null = null;
 
   recentRecords: PointsRecord[] = [];
   showAllRecords = false;
@@ -106,7 +111,7 @@ export class AccountCalendarComponent implements OnInit {
   constructor(private accountService: AccountService, private languageService: LanguageService) {}
 
   ngOnInit(): void {
-    this.accountService.getSelectedAccount().subscribe(acc => {
+    this.subscription.add(this.accountService.getSelectedAccount().subscribe(acc => {
       const prevAccount = this.selectedAccount;
       this.selectedAccount = acc;
       if (acc) {
@@ -127,11 +132,43 @@ export class AccountCalendarComponent implements OnInit {
         this.buildCalendar();
         this.loadForDate(this.selectedDate);
         this.loadRecent();
+
+        // If there was a pending open request for this account, handle it now
+        if (this.pendingOpenRequest && this.selectedAccount && this.pendingOpenRequest.accountId === this.selectedAccount.id) {
+          const req = this.pendingOpenRequest;
+          this.pendingOpenRequest = null;
+          this.openRequestedDate(req.date);
+        }
       } else {
         this.days = [];
       }
-    });
+    }));
+
+    // Subscribe to open calendar requests
+    this.subscription.add(this.accountService.onOpenCalendar().subscribe(req => {
+      if (this.selectedAccount && this.selectedAccount.id === req.accountId) {
+        this.openRequestedDate(req.date);
+      } else {
+        // Save pending request until account selection changes
+        this.pendingOpenRequest = req;
+      }
+    }));
+
     this.buildVolumeOptions();
+  }
+
+  ngOnDestroy(): void {
+    this.subscription.unsubscribe();
+  }
+
+  private openRequestedDate(date: Date): void {
+    // Ensure calendar view is on the month of the date
+    this.selectedDate = new Date(date);
+    this.viewYear = date.getUTCFullYear();
+    this.viewMonth = date.getUTCMonth();
+    this.buildCalendar();
+    this.loadForDate(this.selectedDate);
+    this.editorVisible = true;
   }
 
   private buildVolumeOptions(): void {
@@ -246,6 +283,7 @@ export class AccountCalendarComponent implements OnInit {
       this.volume = rec.volume;
       this.profit = rec.profit ?? 0;
       this.deductedPoints = rec.deductedPoints ?? 0;
+      this.otherExpenses = rec.otherExpenses ?? 0;
       this.updateBalancePoints();
       this.updateVolumePoints();
       this.updateProfitLoss();
@@ -254,9 +292,19 @@ export class AccountCalendarComponent implements OnInit {
       this.includeProfitInStartBalance = true;
       
       const last = this.accountService.getLastDayBalance(this.selectedAccount.id);
+      const dateUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
       const latestRecord = this.getLatestRecord(this.selectedAccount);
       const latestBalanceForPoints = latestRecord ? (latestRecord.balance ?? latestRecord.endBalance ?? last) : last;
-      const latestVolume = latestRecord ? (latestRecord.volume ?? 0) : 0;
+      let latestVolume = this.accountService.getDefaultVolume();
+      if (latestRecord) {
+        const latestRecUTC = new Date(Date.UTC(latestRecord.date.getUTCFullYear(), latestRecord.date.getUTCMonth(), latestRecord.date.getUTCDate()));
+        if (latestRecUTC.getTime() === dateUTC.getTime()) {
+          const parsedVol = Number(latestRecord.volume);
+          latestVolume = !Number.isNaN(parsedVol) ? parsedVol : this.accountService.getDefaultVolume();
+        } else {
+          latestVolume = this.accountService.getDefaultVolume();
+        }
+      }
       const latestEnd = latestRecord ? (latestRecord.endBalance ?? latestRecord.balance ?? last) : last;
       const latestProfit = latestRecord ? (latestRecord.profit ?? 0) : 0;
       const newStartBalance = this.includeProfitInStartBalance ? (latestEnd + latestProfit) : latestEnd;
@@ -269,6 +317,7 @@ export class AccountCalendarComponent implements OnInit {
       this.volume = latestVolume;
       this.profit = 0;
       this.deductedPoints = 0;
+      this.otherExpenses = 0;
       this.updateBalancePoints();
       this.updateVolumePoints();
       this.profitLoss = 0;
@@ -283,9 +332,19 @@ export class AccountCalendarComponent implements OnInit {
     if (rec) return; // Do not override existing records
 
     const last = this.accountService.getLastDayBalance(this.selectedAccount.id);
+    const dateUTC = new Date(Date.UTC(this.selectedDate.getUTCFullYear(), this.selectedDate.getUTCMonth(), this.selectedDate.getUTCDate()));
     const latestRecord = this.getLatestRecord(this.selectedAccount);
     const latestBalanceForPoints = latestRecord ? (latestRecord.balance ?? latestRecord.endBalance ?? last) : last;
-    const latestVolume = latestRecord ? (latestRecord.volume ?? 0) : 0;
+    let latestVolume = this.accountService.getDefaultVolume();
+    if (latestRecord) {
+      const latestRecUTC = new Date(Date.UTC(latestRecord.date.getUTCFullYear(), latestRecord.date.getUTCMonth(), latestRecord.date.getUTCDate()));
+      if (latestRecUTC.getTime() === dateUTC.getTime()) {
+        const parsedVol = Number(latestRecord.volume);
+        latestVolume = !Number.isNaN(parsedVol) ? parsedVol : this.accountService.getDefaultVolume();
+      } else {
+        latestVolume = this.accountService.getDefaultVolume();
+      }
+    }
     const latestEnd = latestRecord ? (latestRecord.endBalance ?? latestRecord.balance ?? last) : last;
     const latestProfit = latestRecord ? (latestRecord.profit ?? 0) : 0;
     const newStartBalance = this.includeProfitInStartBalance ? (latestEnd + latestProfit) : latestEnd;
@@ -299,6 +358,7 @@ export class AccountCalendarComponent implements OnInit {
     this.volume = latestVolume;
     this.profit = 0;
     this.deductedPoints = 0;
+    this.otherExpenses = 0;
     this.updateBalancePoints();
     this.updateVolumePoints();
     this.profitLoss = 0;
@@ -361,7 +421,8 @@ export class AccountCalendarComponent implements OnInit {
       this.volume,
       this.balance, // balance for points calculation
       this.profit,
-      this.deductedPoints
+      this.deductedPoints,
+      this.otherExpenses
     );
     this.buildCalendar();
     this.loadRecent();
