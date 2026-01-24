@@ -49,7 +49,7 @@
   </div>
 
   <div class="accounts-list">
-    <table class="accounts-table" *ngIf="accounts.length>0">
+    <table class="accounts-table" *ngIf="accounts.length>0" tabindex="0" (keydown)="onKeyDown($event)">
       <thead>
         <tr>
           <th (click)="sortBy('stt')">{{ t('stt') }} <span class="sort-indicator" *ngIf="sortColumn==='stt'">{{ sortDir==='asc'?'▲':'▼' }}</span></th>
@@ -132,13 +132,34 @@
                 {{ getTodayVolumePoints(account) | number:'1.0-0' }}
               </ng-container>
               <ng-container *ngSwitchCase="'todayVolume'">
-                {{ getTodayTradeVolume(account) | number:'1.0-0' }}
+                <ng-container *ngIf="hasTodayRecord(account); else noData">
+                  {{ getTodayTradeVolume(account) | number:'1.0-0' }}
+                </ng-container>
+                <ng-template #noData>-</ng-template>
               </ng-container>
               <ng-container *ngSwitchCase="'todayTotalPoints'">
                 {{ getTodayPoints(account) | number:'1.0-0' }}
               </ng-container>
               <ng-container *ngSwitchCase="'tomorrowPoints'">
                 {{ getTomorrowPoints(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'pointsT2'">
+                {{ getPointsT2(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'pointsT3'">
+                {{ getPointsT3(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'pointsT4'">
+                {{ getPointsT4(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'pointsT5'">
+                {{ getPointsT5(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'pointsT6'">
+                {{ getPointsT6(account) | number:'1.0-0' }}
+              </ng-container>
+              <ng-container *ngSwitchCase="'pointsT7'">
+                {{ getPointsT7(account) | number:'1.0-0' }}
               </ng-container>
               <ng-container *ngSwitchCase="'riskDate'">
                 {{ formatRiskDisplay(account) }}
@@ -150,6 +171,9 @@
                 <span [ngClass]="{ 'positive': getTotalPnL(account) >= 0, 'negative': getTotalPnL(account) < 0 }">
                   {{ (getTotalPnL(account) >= 0 ? '+' : '') + (getTotalPnL(account) | number:'1.1-1') }}
                 </span>
+              </ng-container>
+              <ng-container *ngSwitchCase="'nextPointRecoveryDate'">
+                {{ formatPointRecoveryDate(account) }}
               </ng-container>
               <!-- Custom Fields -->
               <ng-container *ngIf="option.id.startsWith('custom_')">

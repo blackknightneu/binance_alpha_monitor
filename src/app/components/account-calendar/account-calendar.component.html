@@ -27,58 +27,96 @@
     <!-- Modal popup editor -->
     <div *ngIf="editorVisible" class="modal-overlay" (click)="editorVisible=false">
       <div class="modal" (click)="$event.stopPropagation()">
-        <h4>{{ selectedAccount.name }} — {{ t('editTitle') }}: {{ selectedDate | date:'mediumDate' }}</h4>
+        <div class="modal-header">
+          <h4>{{ selectedAccount.name }}</h4>
+          <div class="modal-subtitle">{{ t('editTitle') }}: {{ selectedDate | date:'dd/MM/yyyy' }}</div>
+        </div>
         
-        <div class="form-row">
-          <label>Khối lượng (USD)</label>
-          <select [(ngModel)]="volume" (change)="updateVolumePoints()">
-            <option [ngValue]="0">0 (trống)</option>
-            <option *ngFor="let v of volumeOptions" [ngValue]="v">{{ v | number }}</option>
-          </select>
+        <div class="form-content">
+          <!-- Trading Settings Group -->
+          <div class="form-section">
+            <div class="section-title">Điểm Alpha ngày</div>
+            
+            <div class="form-row two-col">
+              <div class="form-col">
+                <label>Khối lượng (USD)</label>
+                <select [(ngModel)]="volume" (change)="updateVolumePoints()">
+                  <option [ngValue]="0">0 (trống)</option>
+                  <option *ngFor="let v of volumeOptions" [ngValue]="v">{{ v | number }}</option>
+                </select>
+              </div>
+              <div class="form-col">
+                <label>Số dư tính điểm</label>
+                <select name="balanceSelect" [(ngModel)]="balance" (ngModelChange)="onBalanceSelectChange($event)" (change)="updateBalancePoints()">
+                  <option [ngValue]="0">0 (trống)</option>
+                  <option *ngFor="let b of balanceOptions" [ngValue]="b">{{ b | number }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Balance Section -->
+          <div class="form-section">
+            <div class="section-title">Chi phí giao dịch</div>
+            
+            <div class="form-row two-col">
+              <div class="form-col">
+                <label>Số dư đầu ngày</label>
+                <input type="number" [(ngModel)]="startBalance" (input)="updateProfitLoss()" step="0.01">
+              </div>
+              <div class="form-col checkbox-inline">
+                <label class="checkbox-label">
+                  <input type="checkbox" [(ngModel)]="includeProfitInStartBalance" (change)="onIncludeProfitToggle()">
+                  <span>Cộng LN ngày trước</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-row two-col">
+              <div class="form-col highlight-col">
+                <label class="primary-label">Số dư cuối ngày</label>
+                <input type="number" [(ngModel)]="endBalance" (input)="updateProfitLoss()" #endBalanceInput autofocus>
+              </div>
+              <div class="form-col readonly-col">
+                <label>Chi phí ngày</label>
+                <div class="info-value" [class.positive]="profitLoss > 0" [class.negative]="profitLoss < 0">
+                  {{ profitLoss | number:'1.2-2' }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Info Section -->
+          <div class="form-section">
+            <div class="section-title">Airdrop</div>
+            
+            <div class="form-row two-col">
+              <div class="form-col">
+                <label>Lợi nhuận (USD)</label>
+                <input type="number" [(ngModel)]="profit" step="0.01">
+              </div>
+              <div class="form-col">
+                <label>Điểm trừ</label>
+                <input type="number" [(ngModel)]="deductedPoints" step="1">
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <label>Chi phí khác (USD)</label>
+              <input type="number" [(ngModel)]="otherExpenses" step="0.01">
+            </div>
+          </div>
         </div>
-        <div class="form-row">
-          <label>Số dư dùng tính điểm</label>
-          <select name="balanceSelect" [(ngModel)]="balance" (ngModelChange)="onBalanceSelectChange($event)" (change)="updateBalancePoints()">
-            <option [ngValue]="0">0 (trống)</option>
-            <option *ngFor="let b of balanceOptions" [ngValue]="b">{{ b | number }}</option>
-            <option [ngValue]="-1">Tùy chỉnh...</option>
-          </select>
-        </div>
-        <div class="form-row checkbox-row">
-          <label class="checkbox-label">
-            <input type="checkbox" [(ngModel)]="includeProfitInStartBalance" (change)="onIncludeProfitToggle()">
-            <span>Cộng lợi nhuận ngày trước vào số dư đầu</span>
-          </label>
-        </div>
-        <div class="form-row">
-          <label>Số dư đầu ngày</label>
-          <input type="number" [(ngModel)]="startBalance" (change)="updateProfitLoss()" autofocus>
-        </div>
-        <div class="form-row">
-          <label>Số dư cuối ngày</label>
-          <input type="number" [(ngModel)]="endBalance" (change)="updateProfitLoss()">
-        </div>
-        <div class="form-row">
-          <label>Chi phí ngày</label>
-          <span class="info-value" [class.positive]="profitLoss > 0" [class.negative]="profitLoss < 0">
-            {{ profitLoss | number:'1.2-2' }}
-          </span>
-        </div>
-        <div class="form-row">
-          <label>Lợi nhuận (USD)</label>
-          <input type="number" [(ngModel)]="profit">
-        </div>
-        <div class="form-row">
-          <label>Điểm trừ</label>
-          <input type="number" [(ngModel)]="deductedPoints">
-        </div>
-        <div class="form-row">
-          <label>Chi phí khác (USD)</label>
-          <input type="number" [(ngModel)]="otherExpenses">
-        </div>
+
         <div class="actions">
-          <button class="btn-primary" (click)="saveForDate()">Lưu</button>
-          <button class="btn-secondary" (click)="editorVisible=false">Đóng</button>
+          <button class="btn-primary" (click)="saveForDate()">
+            <span class="btn-icon">💾</span>
+            Lưu
+          </button>
+          <button class="btn-secondary" (click)="editorVisible=false">
+            <span class="btn-icon">✕</span>
+            Đóng
+          </button>
         </div>
 
         <div class="message" *ngIf="message">{{ message }}</div>
@@ -112,7 +150,12 @@
         <td>{{ r.balance | number:'1.0-0' }}</td>
         <td>{{ r.volume | number:'1.0-0' }}</td>
         <td>{{ r.profit || 0 | number:'1.0-1' }}</td> 
-        <td>{{ r.deductedPoints || 0 }}</td>
+        <td>
+          <ng-container *ngIf="r.deductedPoints && r.deductedPoints !== 0">
+            {{ r.deductedPoints }} ({{ getPointRecoveryDate(r.date) | date:'dd/MM' }})
+          </ng-container>
+          <ng-container *ngIf="!r.deductedPoints || r.deductedPoints === 0">-</ng-container>
+        </td>
         <td>{{ r.totalPoints }}</td>
       </tr>
     </tbody>

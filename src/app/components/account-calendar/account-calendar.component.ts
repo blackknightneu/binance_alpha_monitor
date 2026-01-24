@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountService } from '../../services/account.service';
@@ -54,7 +54,7 @@ export class AccountCalendarComponent implements OnInit, OnDestroy {
   profit = 0;           // daily profit collected
   deductedPoints = 0;   // manual point deductions for the day
   otherExpenses = 0;    // other expenses (chi phí khác)
-  
+
   // Points calculation fields
   calculatedBalancePoints = 0;
   calculatedVolumePoints = 0;
@@ -65,6 +65,8 @@ export class AccountCalendarComponent implements OnInit, OnDestroy {
 
   // whether the editor panel is visible (opened when user clicks a day)
   editorVisible = false;
+
+  @ViewChild('endBalanceInput') endBalanceInput?: ElementRef<HTMLInputElement>;
 
   private subscription: Subscription = new Subscription();
   private pendingOpenRequest: { accountId: string; date: Date } | null = null;
@@ -108,7 +110,7 @@ export class AccountCalendarComponent implements OnInit, OnDestroy {
   message = '';
   messageTimeout: any = null;
 
-  constructor(private accountService: AccountService, private languageService: LanguageService) {}
+  constructor(private accountService: AccountService, private languageService: LanguageService) { }
 
   ngOnInit(): void {
     this.subscription.add(this.accountService.getSelectedAccount().subscribe(acc => {
@@ -169,6 +171,11 @@ export class AccountCalendarComponent implements OnInit, OnDestroy {
     this.buildCalendar();
     this.loadForDate(this.selectedDate);
     this.editorVisible = true;
+
+    // Focus the end balance input after the view updates
+    setTimeout(() => {
+      this.endBalanceInput?.nativeElement?.focus();
+    }, 100);
   }
 
   private buildVolumeOptions(): void {
@@ -236,12 +243,12 @@ export class AccountCalendarComponent implements OnInit, OnDestroy {
       if (rec && date.getTime() === todayUTC.getTime() && (!rec.volume || rec.volume === 0)) {
         missingVolume = true;
       }
-      arr.push({ 
-        date, 
-        label: date.getDate(), 
-        inMonth, 
-        hasRecord: !!rec, 
-        diff, 
+      arr.push({
+        date,
+        label: date.getDate(),
+        inMonth,
+        hasRecord: !!rec,
+        diff,
         points,
         isFuture,
         missingVolume
@@ -268,6 +275,11 @@ export class AccountCalendarComponent implements OnInit, OnDestroy {
     this.selectedDate = new Date(day.date);
     this.loadForDate(this.selectedDate);
     this.editorVisible = true;
+
+    // Focus the end balance input after the view updates
+    setTimeout(() => {
+      this.endBalanceInput?.nativeElement?.focus();
+    }, 100);
   }
 
   loadForDate(date: Date): void {
@@ -290,7 +302,7 @@ export class AccountCalendarComponent implements OnInit, OnDestroy {
     } else {
       // Reset to default (checked) for new records
       this.includeProfitInStartBalance = true;
-      
+
       const last = this.accountService.getLastDayBalance(this.selectedAccount.id);
       const dateUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
       const latestRecord = this.getLatestRecord(this.selectedAccount);
@@ -436,7 +448,7 @@ export class AccountCalendarComponent implements OnInit, OnDestroy {
       this.recentRecords = [];
       return;
     }
-    
+
     // Sort by date descending
     this.recentRecords = [...this.selectedAccount.pointsHistory]
       .sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -474,13 +486,20 @@ export class AccountCalendarComponent implements OnInit, OnDestroy {
   isWithinLast15Days(recordDate: Date): boolean {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const fifteenDaysAgo = new Date(today);
     fifteenDaysAgo.setDate(today.getDate() - 15);
-    
+
     const recordDateOnly = new Date(recordDate);
     recordDateOnly.setHours(0, 0, 0, 0);
-    
+
     return recordDateOnly >= fifteenDaysAgo && recordDateOnly <= today;
+  }
+
+  // Calculate point recovery date = record date + 14 days
+  getPointRecoveryDate(recordDate: Date): Date {
+    const date = new Date(recordDate);
+    date.setDate(date.getDate() + 16);
+    return date;
   }
 }

@@ -46,7 +46,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // Summary range options (days). 0 means all
   summaryRange = 7; // default: 7 days
-  rangeOptions = [7, 15, 30, 0];
+  rangeOptions = [1, 7, 15, 30, 0];
 
   // Comprehensive statistics for all accounts and all dates
   comprehensiveStats = {
@@ -55,7 +55,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     totalPnL: 0,
     totalTradingDays: 0,
     totalVolume: 0,
-    averageFeePerDay: 0
+    avgFeePer1k: 0
   };
 
   constructor(
@@ -173,7 +173,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       totalTradingDays += uniqueDays.size;
     }
 
-    const averageFeePerDay = totalTradingDays > 0 ? (totalFee / totalTradingDays) : 0;
+    const avgFeePer1k = totalVolume > 0 ? (totalFee / (totalVolume / 4000)) : 0;
 
     this.comprehensiveStats = {
       totalFee,
@@ -181,7 +181,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       totalPnL,
       totalTradingDays,
       totalVolume,
-      averageFeePerDay
+      avgFeePer1k
     };
   }
 

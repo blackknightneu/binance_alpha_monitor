@@ -312,11 +312,65 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
     {
       id: 'tomorrowPoints',
       labels: {
-        vi: 'Điểm ngày mai',
-        en: 'Points tomorrow'
+        vi: 'Điểm T+1',
+        en: 'Points T+1'
       },
       visible: true,
-      width: '120px'
+      width: '100px'
+    },
+    {
+      id: 'pointsT2',
+      labels: {
+        vi: 'Điểm T+2',
+        en: 'Points T+2'
+      },
+      visible: false,
+      width: '100px'
+    },
+    {
+      id: 'pointsT3',
+      labels: {
+        vi: 'Điểm T+3',
+        en: 'Points T+3'
+      },
+      visible: false,
+      width: '100px'
+    },
+    {
+      id: 'pointsT4',
+      labels: {
+        vi: 'Điểm T+4',
+        en: 'Points T+4'
+      },
+      visible: false,
+      width: '100px'
+    },
+    {
+      id: 'pointsT5',
+      labels: {
+        vi: 'Điểm T+5',
+        en: 'Points T+5'
+      },
+      visible: false,
+      width: '100px'
+    },
+    {
+      id: 'pointsT6',
+      labels: {
+        vi: 'Điểm T+6',
+        en: 'Points T+6'
+      },
+      visible: false,
+      width: '100px'
+    },
+    {
+      id: 'pointsT7',
+      labels: {
+        vi: 'Điểm T+7',
+        en: 'Points T+7'
+      },
+      visible: false,
+      width: '100px'
     },
     {
       id: 'riskDate',
@@ -344,6 +398,15 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       },
       visible: true,
       width: '120px'
+    },
+    {
+      id: 'nextPointRecoveryDate',
+      labels: {
+        vi: 'Ngày hồi điểm',
+        en: 'Point Recovery'
+      },
+      visible: true,
+      width: '100px'
     },
     {
       id: 'showRenameButton',
@@ -515,6 +578,11 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       const rDate = new Date(Date.UTC(r.date.getUTCFullYear(), r.date.getUTCMonth(), r.date.getUTCDate()));
       return rDate.getTime() === todayUTC.getTime();
     }) || null;
+  }
+
+  // Public helper to check if account has actual today record (for display "-" when no data)
+  hasTodayRecord(account: Account): boolean {
+    return this.getTodayRecord(account) !== null;
   }
 
   // Returns true if account has no input volume trade
@@ -759,8 +827,15 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
           return (this.getTodayEndBalance(a) - this.getTodayEndBalance(b)) * dir;
         case 'todayVolumePoints':
           return (this.getTodayVolumePoints(a) - this.getTodayVolumePoints(b)) * dir;
-        case 'todayVolume':
+        case 'todayVolume': {
+          // Handle accounts without today record - put them at the end
+          const aHasRecord = this.hasTodayRecord(a);
+          const bHasRecord = this.hasTodayRecord(b);
+          if (!aHasRecord && !bHasRecord) return 0;
+          if (!aHasRecord) return dir; // no record goes to end
+          if (!bHasRecord) return -dir; // no record goes to end
           return (this.getTodayTradeVolume(a) - this.getTodayTradeVolume(b)) * dir;
+        }
         case 'todayTotalPoints':
           return (this.getTodayPoints(a) - this.getTodayPoints(b)) * dir;
         case 'tomorrowPoints':
@@ -773,6 +848,26 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
         }
         case 'totalPnL':
           return (this.getTotalPnL(a) - this.getTotalPnL(b)) * dir;
+        case 'nextPointRecoveryDate': {
+          const aDate = this.getNextPointRecoveryDate(a);
+          const bDate = this.getNextPointRecoveryDate(b);
+          const fallback = dir === 1 ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
+          const aTime = aDate ? aDate.getTime() : fallback;
+          const bTime = bDate ? bDate.getTime() : fallback;
+          return (aTime - bTime) * dir;
+        }
+        case 'pointsT2':
+          return (this.getPointsT2(a) - this.getPointsT2(b)) * dir;
+        case 'pointsT3':
+          return (this.getPointsT3(a) - this.getPointsT3(b)) * dir;
+        case 'pointsT4':
+          return (this.getPointsT4(a) - this.getPointsT4(b)) * dir;
+        case 'pointsT5':
+          return (this.getPointsT5(a) - this.getPointsT5(b)) * dir;
+        case 'pointsT6':
+          return (this.getPointsT6(a) - this.getPointsT6(b)) * dir;
+        case 'pointsT7':
+          return (this.getPointsT7(a) - this.getPointsT7(b)) * dir;
         case 'logoutCountdown':
           // Sort by ms left to logout
           const msA = a.lastLogin ? (new Date(a.lastLogin).getTime() + 5 * 24 * 60 * 60 * 1000 - new Date().getTime()) : -Infinity;
@@ -787,7 +882,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
               const bValue = this.getCustomFieldValue(b, fieldDef.id);
 
               if (fieldDef.type === 'boolean') {
-                return (aValue ? 1 : 0) - (bValue ? 1 : 0) * dir;
+                return ((aValue ? 1 : 0) - (bValue ? 1 : 0)) * dir;
               } else {
                 // Text sorting
                 return String(aValue || '').localeCompare(String(bValue || '')) * dir;
@@ -809,6 +904,36 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
 
   selectAccount(accountId: string): void {
     this.accountService.selectAccount(accountId);
+  }
+
+  // Keyboard navigation for account list
+  onKeyDown(event: KeyboardEvent): void {
+    const displayedAccounts = this.getDisplayedAccounts();
+    if (displayedAccounts.length === 0) return;
+
+    const currentIndex = this.selectedAccount
+      ? displayedAccounts.findIndex(a => a.id === this.selectedAccount!.id)
+      : -1;
+
+    let newIndex = currentIndex;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      newIndex = currentIndex < displayedAccounts.length - 1 ? currentIndex + 1 : 0;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      newIndex = currentIndex > 0 ? currentIndex - 1 : displayedAccounts.length - 1;
+    } else if (event.key === 'Enter' && this.selectedAccount) {
+      event.preventDefault();
+      this.openCalendar(this.selectedAccount);
+      return;
+    } else {
+      return;
+    }
+
+    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < displayedAccounts.length) {
+      this.selectAccount(displayedAccounts[newIndex].id);
+    }
   }
 
   openCalendar(account: Account): void {
@@ -851,6 +976,66 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       })
       .reduce((s, r) => s + (r.totalPoints || 0), 0);
   }
+
+  // Generic method to calculate points for T+N day
+  // For future days (after today), simulate with default volume and today's balance points
+  getPointsForTPlus(account: Account, n: number): number {
+    if (!account || !account.pointsHistory) return 0;
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    // Target date is T+N (N days from today)
+    const targetDate = new Date(today);
+    targetDate.setUTCDate(today.getUTCDate() + n);
+
+    // Calculate 15-day range ending at T+N-1 (the day before target)
+    const endDate = new Date(targetDate);
+    endDate.setUTCDate(targetDate.getUTCDate() - 1);
+    const startDate = new Date(endDate);
+    startDate.setUTCDate(endDate.getUTCDate() - 14); // 15 days total
+
+    let totalPoints = 0;
+
+    // Get today's balance points and default volume for simulation
+    const todayRecord = this.getTodayRecord(account);
+    const todayBalancePoints = todayRecord?.balancePoints ?? 0;
+    const defaultVolume = this.accountService.getDefaultVolume();
+    const simulatedVolumePoints = this.accountService['calculateVolumePoints'](defaultVolume);
+    const simulatedDailyPoints = todayBalancePoints + simulatedVolumePoints;
+
+    // Iterate through each day in the 15-day range
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const currentUTC = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate()));
+
+      if (currentUTC <= today) {
+        // Past or today: use actual record if exists
+        const record = account.pointsHistory.find(r => {
+          const rUTC = new Date(Date.UTC(r.date.getUTCFullYear(), r.date.getUTCMonth(), r.date.getUTCDate()));
+          return rUTC.getTime() === currentUTC.getTime();
+        });
+        if (record) {
+          totalPoints += record.totalPoints || 0;
+        }
+      } else {
+        // Future: simulate with today's balance points + default volume points
+        totalPoints += simulatedDailyPoints;
+      }
+
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+    }
+
+    return totalPoints;
+  }
+
+  // Helper methods for each T+N
+  getPointsT2(account: Account): number { return this.getPointsForTPlus(account, 2); }
+  getPointsT3(account: Account): number { return this.getPointsForTPlus(account, 3); }
+  getPointsT4(account: Account): number { return this.getPointsForTPlus(account, 4); }
+  getPointsT5(account: Account): number { return this.getPointsForTPlus(account, 5); }
+  getPointsT6(account: Account): number { return this.getPointsForTPlus(account, 6); }
+  getPointsT7(account: Account): number { return this.getPointsForTPlus(account, 7); }
 
   // Helper: lấy record của ngày bất kỳ, nếu chưa có thì tạo mới dựa trên ngày trước đó
   getOrCreateRecord(account: Account, date: Date): PointsRecord | null {
@@ -957,7 +1142,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
         const profit = record.profit ?? 0;
         const deducted = record.deductedPoints ?? 0;
         const other = record.otherExpenses ?? 0;
-        const dailyPnL = (end - start) + profit - deducted - other;
+        const dailyPnL = (end - start) + profit - other;
         return sum + dailyPnL;
       }, 0);
       // console.log('getTotalPnL for', account.id, 'range', this.pnlRangeDays, 'value', value);
@@ -978,7 +1163,7 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       const profit = record.profit ?? 0;
       const deducted = record.deductedPoints ?? 0;
       const other = record.otherExpenses ?? 0;
-      const dailyPnL = (end - start) + profit - deducted - other;
+      const dailyPnL = (end - start) + profit - other;
       return sum + dailyPnL;
     }, 0);
     // console.log('getTotalPnL for', account.id, 'range', this.pnlRangeDays, 'value', value);
@@ -992,6 +1177,72 @@ export class AccountManagerComponent implements OnInit, OnDestroy {
       return current.date > latest.date ? current : latest;
     }, undefined as PointsRecord | undefined);
     return latestRecord?.endBalance ?? latestRecord?.balance ?? 0;
+  }
+
+  // Get the earliest point recovery date (record date + 16 days) from records within last 16 days that have deductedPoints != 0
+  getNextPointRecoveryDate(account: Account): Date | null {
+    if (!account || !account.pointsHistory || account.pointsHistory.length === 0) return null;
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    // Get records within last 16 days (including today) that have deductedPoints != 0
+    const sixteenDaysAgo = new Date(today);
+    sixteenDaysAgo.setUTCDate(today.getUTCDate() - 15); // 16 days including today
+
+    const eligibleRecords = account.pointsHistory.filter(record => {
+      const recordDate = new Date(Date.UTC(record.date.getUTCFullYear(), record.date.getUTCMonth(), record.date.getUTCDate()));
+      const withinRange = recordDate >= sixteenDaysAgo && recordDate <= today;
+      const hasDeduction = (record.deductedPoints ?? 0) !== 0;
+      return withinRange && hasDeduction;
+    });
+
+    if (eligibleRecords.length === 0) return null;
+
+    // Find the record with the earliest date (which will have the earliest recovery date)
+    const earliestRecord = eligibleRecords.reduce((earliest, current) => {
+      return current.date < earliest.date ? current : earliest;
+    });
+
+    // Calculate recovery date = record date + 16 days
+    const recoveryDate = new Date(earliestRecord.date);
+    recoveryDate.setDate(recoveryDate.getDate() + 16);
+    return recoveryDate;
+  }
+
+  // Format point recovery date for display with points
+  formatPointRecoveryDate(account: Account): string {
+    if (!account || !account.pointsHistory || account.pointsHistory.length === 0) return '-';
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const sixteenDaysAgo = new Date(today);
+    sixteenDaysAgo.setUTCDate(today.getUTCDate() - 15);
+
+    const eligibleRecords = account.pointsHistory.filter(record => {
+      const recordDate = new Date(Date.UTC(record.date.getUTCFullYear(), record.date.getUTCMonth(), record.date.getUTCDate()));
+      const withinRange = recordDate >= sixteenDaysAgo && recordDate <= today;
+      const hasDeduction = (record.deductedPoints ?? 0) !== 0;
+      return withinRange && hasDeduction;
+    });
+
+    if (eligibleRecords.length === 0) return '-';
+
+    // Find the record with the earliest date
+    const earliestRecord = eligibleRecords.reduce((earliest, current) => {
+      return current.date < earliest.date ? current : earliest;
+    });
+
+    // Calculate recovery date = record date + 16 days
+    const recoveryDate = new Date(earliestRecord.date);
+    recoveryDate.setDate(recoveryDate.getDate() + 16);
+
+    const day = String(recoveryDate.getDate()).padStart(2, '0');
+    const month = String(recoveryDate.getMonth() + 1).padStart(2, '0');
+    const points = earliestRecord.deductedPoints ?? 0;
+
+    return `${day}/${month} (+${points})`;
   }
 
   confirmLoginWithTime(): void {

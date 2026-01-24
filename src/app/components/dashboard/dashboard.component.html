@@ -63,27 +63,21 @@
           {{ comprehensiveStats.totalPnL | number:'1.0-2' }}
         </div>
       </div>
+      <div class="stat-item">
+        <div class="stat-label">Tổng Volume</div>
+        <div class="stat-value">{{ comprehensiveStats.totalVolume | number:'1.0-0' }}</div>
+      </div>
 
       <!-- Today's Data -->
       <div class="stat-item">
         <div class="stat-label">Đã trade hôm nay </div>
         <div class="stat-value">{{ summaryData.accountsWithVolume }} / {{ accounts.length }}</div>
       </div>
-      <div class="stat-item">
-        <div class="stat-label">Airdrop hôm nay</div>
-        <div class="stat-value" [class]="summaryData.totalProfit >= 0 ? 'positive' : 'negative'">
-          {{ summaryData.totalProfit | number:'1.0-2' }}
-        </div>
-      </div>
 
       <div class="stat-item">
-        <div class="stat-label">Fee hôm nay</div>
-        <div class="stat-value">{{ summaryData.totalCost | number:'1.0-2' }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Avg Fee hôm nay</div>
-        <div class="stat-value" [class]="summaryData.averageCostPer1000 < -0.2 ? 'negative' : 'positive'">
-          {{ summaryData.averageCostPer1000 | number:'1.1-3' }}
+        <div class="stat-label">Avg Fee/1k</div>
+        <div class="stat-value" [class]="comprehensiveStats.avgFeePer1k < -0.2 ? 'negative' : 'positive'">
+          {{ comprehensiveStats.avgFeePer1k | number:'1.1-3' }}
         </div>
       </div>
 
